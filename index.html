@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PsychoSuite | Южный дом-интернат</title>
+    <title>АРМ Психолога | Южный дом-интернат</title>
+    <!-- Библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <!-- Иконки -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <style>
         :root {
             --primary-blue: #4A90E2;
@@ -20,372 +20,143 @@
             --btn-red: #E74C3C;
             --btn-green: #2ECC71;
             --btn-blue: #4A90E2;
+            --btn-orange: #F39C12;
             --shadow: 0 2px 10px rgba(0,0,0,0.08);
             --radius: 8px;
         }
 
         * { box-sizing: border-box; outline: none; }
-
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; line-height: 1.6; }
 
         /* HEADER */
-        header {
-            background-color: var(--primary-blue);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+        header { background-color: var(--primary-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header-title { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .settings-icon { cursor: pointer; font-size: 1.2rem; opacity: 0.8; transition: 0.2s; }
+        .settings-icon:hover { opacity: 1; transform: rotate(30deg); }
 
-        .header-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        /* NAV */
+        nav { display: flex; justify-content: center; gap: 8px; padding: 10px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-wrap: wrap; position: sticky; top: 60px; z-index: 99; }
+        nav button { padding: 8px 16px; border: 2px solid transparent; background: transparent; color: var(--text-light); cursor: pointer; border-radius: var(--radius); font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+        nav button:hover { background: #f0f4f8; color: var(--primary-blue); }
+        nav button.active { background: var(--primary-blue); color: white; box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3); }
 
-        .settings-icon {
-            cursor: pointer;
-            font-size: 1.2rem;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-        .settings-icon:hover { opacity: 1; }
-
-        /* NAVIGATION */
-        nav {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            padding: 15px;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            flex-wrap: wrap;
-            position: sticky;
-            top: 60px;
-            z-index: 99;
-        }
-
-        nav button {
-            padding: 10px 20px;
-            border: 2px solid transparent;
-            background: transparent;
-            color: var(--text-light);
-            cursor: pointer;
-            border-radius: var(--radius);
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.2s;
-        }
-
-        nav button:hover {
-            background: #f0f4f8;
-            color: var(--primary-blue);
-        }
-
-        nav button.active {
-            background: var(--primary-blue);
-            color: white;
-            box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
-        }
-
-        /* MAIN CONTENT */
-        main {
-            padding: 20px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .section {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
+        /* MAIN */
+        main { padding: 20px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; }
+        .section { display: none; animation: fadeIn 0.3s ease; }
         .section.active { display: block; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* CARDS & BUTTONS */
-        .menu-card {
-            background: var(--card-white);
-            border-radius: var(--radius);
-            padding: 25px;
-            box-shadow: var(--shadow);
-            text-align: center;
-        }
-
-        .stats-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: var(--radius);
-            margin-bottom: 20px;
-            text-align: left;
-            border-left: 4px solid var(--primary-blue);
-        }
+        .menu-card { background: var(--card-white); border-radius: var(--radius); padding: 25px; box-shadow: var(--shadow); text-align: center; }
+        .stats-box { background: #f8f9fa; padding: 15px; border-radius: var(--radius); margin-bottom: 20px; text-align: left; border-left: 4px solid var(--primary-blue); }
         .stats-box strong { color: var(--primary-blue); }
-
-        .big-btn {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 12px;
-            border: none;
-            border-radius: var(--radius);
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
-            text-align: center;
-            text-decoration: none;
-        }
+        
+        .big-btn { display: block; width: 100%; padding: 15px; margin-bottom: 12px; border: none; border-radius: var(--radius); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: center; }
         .big-btn:active { transform: scale(0.98); }
         .big-btn:hover { opacity: 0.9; }
-
         .btn-red { background-color: var(--btn-red); }
         .btn-green { background-color: var(--btn-green); }
         .btn-blue { background-color: var(--btn-blue); }
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--btn-blue);
-            color: var(--btn-blue);
-        }
+        .btn-orange { background-color: var(--btn-orange); }
+        .btn-outline { background: transparent; border: 2px solid var(--btn-blue); color: var(--btn-blue); }
         .btn-outline:hover { background: var(--btn-blue); color: white; }
-
-        .btn-finish {
-            background: #c0392b;
-            margin-top: 20px;
-            box-shadow: 0 4px 6px rgba(192, 57, 43, 0.3);
-        }
+        .btn-finish { background: #c0392b; margin-top: 20px; box-shadow: 0 4px 6px rgba(192, 57, 43, 0.3); }
 
         /* FORMS */
-        .form-group { margin-bottom: 20px; }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-dark);
-            font-size: 0.9rem;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            background: white;
-            transition: border-color 0.2s;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-        }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-dark); font-size: 0.95rem; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: var(--radius); font-size: 1rem; background: white; transition: border 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1); }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
 
-        /* LISTS (Clients & Results) */
-        .list-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        /* LISTS & TABLES */
+        .list-container { display: flex; flex-direction: column; gap: 15px; }
+        .entry-card { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); position: relative; border-left: 4px solid var(--primary-blue); }
+        .entry-card.diag { border-left-color: var(--btn-orange); }
+        .entry-card.patron { border-left-color: var(--btn-green); }
+        
+        .entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .entry-date { font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
+        .entry-client { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); }
+        .entry-type { font-size: 0.75rem; text-transform: uppercase; color: white; background: var(--primary-blue); padding: 2px 8px; border-radius: 4px; }
+        .entry-content { margin-top: 10px; white-space: pre-wrap; font-size: 0.95rem; color: #444; }
+        .entry-actions { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
+        .icon-btn { background: none; border: none; cursor: pointer; color: var(--text-light); padding: 5px; font-size: 1rem; transition: 0.2s; }
+        .icon-btn:hover { color: var(--btn-red); transform: scale(1.1); }
+        .icon-btn.print:hover { color: var(--primary-blue); }
 
-        .client-card, .result-card {
-            background: white;
-            padding: 20px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            position: relative;
-            transition: transform 0.2s;
-        }
-        .client-card:hover, .result-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        }
+        /* ATTENDANCE TABLE */
+        .attendance-table { width: 100%; border-collapse: collapse; background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+        .attendance-table th, .attendance-table td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
+        .attendance-table th { background: var(--primary-blue); color: white; font-weight: 600; }
+        .attendance-table tr:hover { background: #f9f9f9; }
+        .check-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; color: #ddd; transition: 0.2s; }
+        .check-btn.present { background: var(--btn-green); border-color: var(--btn-green); color: white; }
 
-        .client-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 5px;
-        }
-        .client-dob {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-        .client-actions {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        .icon-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-light);
-            font-size: 1rem;
-            padding: 5px;
-            transition: color 0.2s;
-        }
-        .icon-btn:hover { color: var(--btn-red); }
-        .icon-btn.edit:hover { color: var(--primary-blue); }
-
-        /* Result Cards (Blue style) */
-        .result-card {
-            background: var(--primary-blue);
-            color: white;
-        }
-        .result-method {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        .result-date {
-            font-size: 0.85rem;
-            opacity: 0.8;
-            margin-bottom: 15px;
-            display: block;
-        }
-        .result-score {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 10px 0;
-        }
-        .result-desc {
-            font-size: 0.95rem;
-            opacity: 0.9;
-            line-height: 1.5;
-        }
-
-        /* Sync Status & Toast */
-        #sync-status-bar {
-            background: #fff3cd;
-            color: #856404;
-            padding: 10px;
-            text-align: center;
-            font-size: 0.9rem;
-            border-bottom: 1px solid #ffeeba;
-        }
-
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #333;
-            color: white;
-            padding: 12px 24px;
-            border-radius: var(--radius);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transform: translateY(100px);
-            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            z-index: 1000;
-            min-width: 250px;
-            text-align: center;
-        }
+        /* TOAST & STATUS */
+        #sync-status-bar { background: #fff3cd; color: #856404; padding: 10px; text-align: center; font-size: 0.9rem; border-bottom: 1px solid #ffeeba; }
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 24px; border-radius: var(--radius); transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         #toast.show { transform: translateY(0); }
         #toast.success { border-left: 5px solid var(--btn-green); }
         #toast.error { border-left: 5px solid var(--btn-red); }
-
-        /* Timer Display */
-        .timer-display {
-            font-size: 0.8rem;
-            color: var(--text-light);
-            text-align: center;
-            margin-top: 5px;
-        }
-
-        /* Settings Panel */
-        .settings-panel {
-            background: white;
-            padding: 20px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin-top: 20px;
-            display: none;
-        }
+        .timer-display { font-size: 0.8rem; color: var(--text-light); margin-top: 10px; text-align: center; }
+        
+        .settings-panel { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 20px; display: none; border: 1px solid #eee; }
         .settings-panel.open { display: block; }
 
         @media (max-width: 600px) {
+            .row { flex-direction: column; gap: 0; }
             nav { top: 50px; }
-            .header-title span { display: none; } /* Скрыть текст на очень маленьких экранах */
+            .header-title span { display: none; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="header-title">
-        <i class="fas fa-brain"></i>
-        <span>PsychoSuite</span>
-    </div>
-    <div class="settings-icon" onclick="toggleSettings()">
-        <i class="fas fa-cog"></i>
-    </div>
+    <div class="header-title"><i class="fas fa-user-md"></i> <span>АРМ Психолога</span></div>
+    <div class="settings-icon" onclick="toggleSettings()"><i class="fas fa-cog"></i></div>
 </header>
 
-<div id="sync-status-bar">
-    <i class="fas fa-info-circle"></i> Проверка статуса синхронизации...
-</div>
+<div id="sync-status-bar"><i class="fas fa-cloud"></i> Ожидание синхронизации...</div>
 
 <nav>
     <button onclick="showSection('dashboard')" class="active"><i class="fas fa-home"></i> Главная</button>
     <button onclick="showSection('clients')"><i class="fas fa-users"></i> Клиенты</button>
-    <button onclick="showSection('consultations')"><i class="fas fa-comments"></i> Журнал</button>
-    <button onclick="showSection('diagnostics')"><i class="fas fa-clipboard-list"></i> Тесты</button>
-    <button onclick="showSection('results')"><i class="fas fa-chart-bar"></i> Результаты</button>
+    <button onclick="showSection('journal')"><i class="fas fa-pen-fancy"></i> Журнал</button>
+    <button onclick="showSection('attendance')"><i class="fas fa-calendar-check"></i> Посещаемость</button>
+    <button onclick="showSection('reports')"><i class="fas fa-file-word"></i> Бланки</button>
 </nav>
 
 <main>
     <!-- DASHBOARD -->
     <div id="dashboard" class="section active">
         <div class="menu-card">
-            <h2 style="margin-top:0; color: var(--text-dark);">Главное меню</h2>
-
+            <h2 style="margin-top:0;">Управление данными</h2>
             <div class="stats-box">
-                <i class="fas fa-chart-pie"></i> <strong>Данных в приложении:</strong><br>
-                Клиентов: <span id="stat-clients">0</span> | Записей: <span id="stat-records">0</span>
+                <i class="fas fa-chart-pie"></i> <strong>Статистика:</strong><br>
+                Клиентов: <span id="stat-clients">0</span> | Записей в журналах: <span id="stat-logs">0</span>
             </div>
 
             <button class="big-btn btn-red" onclick="downloadFromYandex()">
-                <i class="fas fa-download"></i> СКАЧАТЬ БЭКАП
+                <i class="fas fa-download"></i> СКАЧАТЬ БЭКАП (Яндекс)
             </button>
             <button class="big-btn btn-green" onclick="uploadToYandex()">
-                <i class="fas fa-upload"></i> ВОССТАНОВИТЬ ИЗ БЭКАПА
+                <i class="fas fa-upload"></i> ЗАГРУЗИТЬ БЭКАП (Яндекс)
             </button>
-
+            
             <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
-
-            <button class="big-btn btn-blue" onclick="showSection('diagnostics')">
-                <i class="fas fa-pencil-alt"></i> Провести тестирование
+            
+            <button class="big-btn btn-blue" onclick="showSection('journal')">
+                <i class="fas fa-plus-circle"></i> Новая запись в журнал
             </button>
-            <button class="big-btn btn-green" onclick="showSection('clients')">
+            <button class="big-btn btn-orange" onclick="showSection('attendance')">
+                <i class="fas fa-check-square"></i> Отметить посещаемость
+            </button>
+            <button class="big-btn btn-outline" onclick="showSection('clients')">
                 <i class="fas fa-user-plus"></i> Управление клиентами
             </button>
-            <button class="big-btn btn-outline" onclick="showSection('results')">
-                <i class="fas fa-eye"></i> Просмотр результатов
-            </button>
-
-            <div style="margin-top: 30px; text-align: left;">
-                <h3><i class="fas fa-file-export"></i> Экспорт данных</h3>
-                <button class="big-btn btn-green" onclick="exportCSV()">
-                    <i class="fas fa-table"></i> Экспорт тестов (CSV)
-                </button>
-            </div>
 
             <button class="big-btn btn-finish" onclick="finishShift()">
                 <i class="fas fa-power-off"></i> ЗАВЕРШИТЬ СМЕНУ И СИНХРОНИЗИРОВАТЬ
@@ -394,115 +165,185 @@
         </div>
     </div>
 
-    <!-- SETTINGS PANEL (Hidden by default) -->
+    <!-- SETTINGS -->
     <div id="settings-panel" class="settings-panel">
         <h3><i class="fas fa-cog"></i> Настройки Яндекс.Диска</h3>
         <div class="form-group">
             <label>OAuth Token</label>
             <input type="password" id="ya-token" placeholder="Вставьте токен доступа">
+            <small style="color:#666">Токен сохраняется в браузере.</small>
         </div>
         <div class="form-group">
             <label>Путь к файлу бэкапа</label>
-            <input type="text" id="ya-path" value="/psych_backup.json">
+            <input type="text" id="ya-path" value="/journals_backup.json">
         </div>
         <button class="big-btn btn-blue" onclick="saveSettingsAndClose()">Сохранить настройки</button>
     </div>
 
     <!-- CLIENTS -->
     <div id="clients" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-users"></i> Управление клиентами</h2>
-
+        <h2 style="color: var(--text-dark);"><i class="fas fa-users"></i> Клиенты</h2>
         <div class="form-group">
-            <label>Добавить клиента (JSON импорт)</label>
+            <label>Импорт клиентов (JSON)</label>
             <textarea id="importData" rows="3" placeholder='[{"fio":"Иванов И.И.", "dob":"1950-01-01", "group":"Группа 1"}]'></textarea>
             <button class="big-btn btn-blue" style="margin-top:10px;" onclick="importClients()">Импортировать список</button>
         </div>
-
         <div class="form-group">
             <input type="text" id="searchClient" placeholder="Поиск по ФИО..." onkeyup="renderClients()">
         </div>
-
         <div id="clientsList" class="list-container"></div>
     </div>
 
-    <!-- CONSULTATIONS -->
-    <div id="consultations" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-comments"></i> Журнал консультаций</h2>
-
+    <!-- JOURNAL ENTRY -->
+    <div id="journal" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-pen-fancy"></i> Запись в журнал</h2>
+        
         <div class="form-group">
-            <label>Клиент</label>
-            <select id="consClientSelect"></select>
-        </div>
-        <div class="form-group">
-            <label>Дата</label>
-            <input type="date" id="consDate">
-        </div>
-        <div class="form-group">
-            <label>Тип обращения</label>
-            <select id="consType">
-                <option value="primary">Первичная консультация</option>
-                <option value="repeat">Повторная консультация</option>
-                <option value="emergency">Экстренная помощь</option>
+            <label>Тип журнала</label>
+            <select id="logType" onchange="toggleLogFields()">
+                <option value="consultation">Консультация</option>
+                <option value="diagnostics">Диагностика</option>
                 <option value="patronage">Патронаж</option>
+                <option value="correction">Коррекционное занятие</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>Содержание беседы / Жалобы</label>
-            <textarea id="consContent" rows="5" placeholder="Опишите содержание консультации..."></textarea>
+
+        <div class="row form-group">
+            <div class="col">
+                <label>Дата</label>
+                <input type="date" id="logDate">
+            </div>
+            <div class="col">
+                <label>Клиент</label>
+                <select id="logClient"></select>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Рекомендации</label>
-            <textarea id="consRec" rows="3" placeholder="Рекомендации клиенту..."></textarea>
+
+        <!-- Поля для Консультации -->
+        <div id="fields-consultation" class="log-fields">
+            <div class="form-group">
+                <label>Комната / Категория</label>
+                <input type="text" id="consRoom" placeholder="Напр. 105, Группа А">
+            </div>
+            <div class="form-group">
+                <label>Запрос ПСУ (Жалобы)</label>
+                <textarea id="consRequest" rows="3" placeholder="С чем обратился..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Содержание работы</label>
+                <textarea id="consContent" rows="4" placeholder="Что делали..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Результат</label>
+                <textarea id="consResult" rows="2" placeholder="Динамика, состояние..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Рекомендации</label>
+                <textarea id="consRec" rows="2" placeholder="Что делать дальше..."></textarea>
+            </div>
         </div>
-        <button class="big-btn btn-green" onclick="saveConsultation()">
+
+        <!-- Поля для Диагностики -->
+        <div id="fields-diagnostics" class="log-fields" style="display:none;">
+            <div class="form-group">
+                <label>Методики</label>
+                <input type="text" id="diagMethods" placeholder="Напр. MMSE, HADS">
+            </div>
+            <div class="form-group">
+                <label>Результат (баллы)</label>
+                <input type="text" id="diagResult" placeholder="Напр. 24 балла">
+            </div>
+            <div class="form-group">
+                <label>Заключение</label>
+                <textarea id="diagConclusion" rows="3" placeholder="Интерпретация..."></textarea>
+            </div>
+        </div>
+
+        <!-- Поля для Патронажа -->
+        <div id="fields-patronage" class="log-fields" style="display:none;">
+            <div class="form-group">
+                <label>Место/Условия</label>
+                <input type="text" id="patrPlace" placeholder="Напр. Палата 105">
+            </div>
+            <div class="form-group">
+                <label>Цель</label>
+                <input type="text" id="patrGoal" placeholder="Напр. Оценка состояния">
+            </div>
+            <div class="form-group">
+                <label>Наблюдения</label>
+                <textarea id="patrObs" rows="4" placeholder="Что увидели..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Рекомендации</label>
+                <textarea id="patrRec" rows="2"></textarea>
+            </div>
+        </div>
+
+        <!-- Поля для Коррекции -->
+        <div id="fields-correction" class="log-fields" style="display:none;">
+            <div class="form-group">
+                <label>Программа/Направление</label>
+                <input type="text" id="corrProgram" placeholder="Напр. Когнитивная тренировка">
+            </div>
+            <div class="form-group">
+                <label>Упражнения/Ход занятия</label>
+                <textarea id="corrProcess" rows="4" placeholder="Описание упражнений..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Динамика/Заметки</label>
+                <textarea id="corrNotes" rows="2"></textarea>
+            </div>
+        </div>
+
+        <button class="big-btn btn-green" onclick="saveLog()">
             <i class="fas fa-save"></i> Сохранить запись
         </button>
 
         <h3 style="margin-top:30px; color: var(--text-light);">Последние записи</h3>
-        <div id="consHistory" class="list-container"></div>
+        <div id="logHistory" class="list-container"></div>
     </div>
 
-    <!-- DIAGNOSTICS -->
-    <div id="diagnostics" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-clipboard-list"></i> Проведение тестирования</h2>
-
-        <div class="form-group">
-            <label>Клиент</label>
-            <select id="diagClientSelect"></select>
+    <!-- ATTENDANCE -->
+    <div id="attendance" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-calendar-check"></i> Посещаемость</h2>
+        <div class="form-group row">
+            <div class="col">
+                <label>Выберите дату</label>
+                <input type="date" id="attDate" onchange="loadAttendance()">
+            </div>
+            <div class="col" style="display:flex; align-items:flex-end;">
+                <button class="big-btn btn-blue" onclick="loadAttendance()" style="margin:0;">Обновить</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Методика</label>
-            <select id="diagMethod">
-                <option value="MMSE">MMSE (Краткая шкала оценки психического статуса)</option>
-                <option value="HADS">HADS (Госпитальная шкала тревоги и депрессии)</option>
-                <option value="Zung">Шкала самооценки депрессии Цунга</option>
-                <option value="MoCA">MoCA (Монреальская шкала когнитивной оценки)</option>
-                <option value="Beck">Опросник депрессии Бека</option>
-            </select>
+        <div style="overflow-x:auto;">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">ФИО Клиента</th>
+                        <th>Отметка</th>
+                    </tr>
+                </thead>
+                <tbody id="attList"></tbody>
+            </table>
         </div>
-        <div class="form-group">
-            <label>Результат (баллы/индекс)</label>
-            <input type="text" id="diagResult" placeholder="Например: 24 балла">
-        </div>
-        <div class="form-group">
-            <label>Интерпретация / Заключение</label>
-            <textarea id="diagInterp" rows="4" placeholder="Опишите результаты тестирования..."></textarea>
-        </div>
-        <button class="big-btn btn-blue" onclick="saveDiagnosis()">
-            <i class="fas fa-check-circle"></i> Сохранить результат
+        <button class="big-btn btn-green" style="margin-top:20px;" onclick="saveAttendance()">
+            <i class="fas fa-save"></i> Сохранить отметки
         </button>
     </div>
 
-    <!-- RESULTS -->
-    <div id="results" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-chart-bar"></i> Результаты тестов</h2>
+    <!-- REPORTS / BLANKS -->
+    <div id="reports" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-file-word"></i> Бланки консультаций</h2>
+        <p style="color:#666;">Выберите запись из журнала консультаций, чтобы сгенерировать официальный бланк DOCX.</p>
+        
         <div class="form-group">
-            <label>Фильтр по клиенту</label>
-            <select id="filterClientSelect" onchange="renderResults()">
+            <label>Фильтр по клиенту (опционально)</label>
+            <select id="reportClientFilter" onchange="renderReportsList()">
                 <option value="all">Все клиенты</option>
             </select>
         </div>
-        <div id="resultsList" class="list-container"></div>
+
+        <div id="reportsList" class="list-container"></div>
     </div>
 </main>
 
@@ -510,9 +351,12 @@
 
 <script>
     // --- КОНФИГУРАЦИЯ ---
-    const DB_NAME = 'psychosuite_local';
+    const DB_NAME = 'psych_journals_pwa';
     const INACTIVITY_LIMIT = 6 * 60 * 60 * 1000; // 6 часов
-
+    
+    // !!! ТОКЕН ВСТАВЛЕН АВТОМАТИЧЕСКИ !!!
+    const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g"; 
+    
     let db = new PouchDB(DB_NAME);
     let inactivityTimer;
     let lastActivityTime = Date.now();
@@ -548,32 +392,41 @@
 
     // --- ИНИЦИАЛИЗАЦИЯ ---
     window.addEventListener('load', async () => {
-        const savedToken = localStorage.getItem('ya_token');
+        // Проверка токена
+        const savedToken = localStorage.getItem('ya_token') || YANDEX_TOKEN;
         const savedPath = localStorage.getItem('ya_path');
-        if(savedToken) document.getElementById('ya-token').value = savedToken;
-        if(savedPath) document.getElementById('ya-path').value = savedPath;
+        
+        if(savedToken && savedToken !== "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ЯНДЕКСА") {
+            document.getElementById('ya-token').value = savedToken;
+            if(savedPath) document.getElementById('ya-path').value = savedPath;
 
-        if(savedToken) {
             updateStatus("Токен найден. Автозагрузка...", "info");
             await downloadFromYandex();
         } else {
             updateStatus("Настройте токен в разделе настроек (шестеренка)", "warning");
         }
 
+        // Установка сегодняшней даты
+        document.getElementById('logDate').valueAsDate = new Date();
+        document.getElementById('attDate').valueAsDate = new Date();
+        
         resetInactivityTimer();
         await updateStats();
         await renderClients();
         await loadClientsToSelects();
+        await renderLogsHistory();
     });
 
     function saveSettingsAndClose() {
-        localStorage.setItem('ya_token', document.getElementById('ya-token').value);
-        localStorage.setItem('ya-path', document.getElementById('ya-path').value);
-        toggleSettings();
-        showToast("Настройки сохранены", "success");
-        // Автозагрузка после сохранения токена
-        if(document.getElementById('ya-token').value) {
+        const token = document.getElementById('ya-token').value;
+        if(token) {
+            localStorage.setItem('ya_token', token);
+            localStorage.setItem('ya_path', document.getElementById('ya-path').value);
+            toggleSettings();
+            showToast("Настройки сохранены", "success");
             downloadFromYandex();
+        } else {
+            alert("Введите токен!");
         }
     }
 
@@ -587,20 +440,18 @@
         document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-
-        // Find button that calls this function and make it active
+        
         const buttons = document.querySelectorAll('nav button');
         buttons.forEach(btn => {
-            if(btn.getAttribute('onclick').includes(id)) {
-                btn.classList.add('active');
-            }
+            if(btn.getAttribute('onclick').includes(id)) btn.classList.add('active');
         });
 
         resetInactivityTimer();
-
+        
         if(id === 'clients') renderClients();
-        if(id === 'consultations' || id === 'diagnostics') loadClientsToSelects();
-        if(id === 'results') { loadClientsToSelects(); renderResults(); }
+        if(id === 'journal') { loadClientsToSelects(); renderLogsHistory(); }
+        if(id === 'attendance') loadAttendance();
+        if(id === 'reports') { loadClientsToSelects(); renderReportsList(); }
         if(id === 'dashboard') updateStats();
     };
 
@@ -609,7 +460,7 @@
         const icon = type === 'error' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-info-circle');
         const color = type === 'error' ? '#721c24' : (type === 'success' ? '#155724' : '#856404');
         const bg = type === 'error' ? '#f8d7da' : (type === 'success' ? '#d4edda' : '#fff3cd');
-
+        
         bar.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
         bar.style.color = color;
         bar.style.background = bg;
@@ -623,121 +474,125 @@
         setTimeout(() => { toast.classList.remove('show'); }, 4000);
     }
 
-    // --- ЯНДЕКС ДИСК ---
-    async function getYandexHeaders() {
-        const token = document.getElementById('ya-token').value;
-        const path = document.getElementById('ya-path').value;
-        if (!token) throw new Error("Нет токена!");
-        return { token, path };
+    // --- ЛОГИКА ЖУРНАЛОВ ---
+    function toggleLogFields() {
+        const type = document.getElementById('logType').value;
+        document.querySelectorAll('.log-fields').forEach(el => el.style.display = 'none');
+        document.getElementById(`fields-${type}`).style.display = 'block';
     }
 
-    async function getFileId(path, token) {
-        const url = `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(path)}`;
-        const resp = await fetch(url, { headers: { Authorization: `OAuth ${token}` } });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        return data.id;
-    }
+    async function saveLog() {
+        const type = document.getElementById('logType').value;
+        const clientId = document.getElementById('logClient').value;
+        const date = document.getElementById('logDate').value;
+        
+        if(!clientId) return showToast('Выберите клиента', "error");
+        if(!date) return showToast('Выберите дату', "error");
 
-    async function downloadFromYandex() {
-        updateStatus("Скачивание базы с Яндекс.Диска...", "info");
-        try {
-            const { token, path } = await getYandexHeaders();
-            let fileId = await getFileId(path, token);
+        let extra = {};
+        let details = "";
 
-            if (!fileId) {
-                updateStatus("Файл бэкапа не найден на Диске", "warning");
-                showToast("База на диске пуста", "info");
-                return;
-            }
-
-            const dlUrlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(path)}`, {
-                headers: { Authorization: `OAuth ${token}` }
-            });
-            const dlData = await dlUrlResp.json();
-
-            const fileResp = await fetch(dlData.href);
-            const jsonData = await fileResp.json();
-
-            await db.destroy();
-            db = new PouchDB(DB_NAME);
-            await db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
-            await db.createIndex({ index: { fields: ['fio'] } });
-
-            if (jsonData.length > 0) {
-                await db.bulkDocs(jsonData);
-                updateStatus(`✅ Загружено ${jsonData.length} записей`, "success");
-                showToast("База успешно обновлена!", "success");
-            }
-
-            await updateStats();
-            await renderClients();
-            await loadClientsToSelects();
-
-        } catch (e) {
-            updateStatus(`Ошибка: ${e.message}`, "error");
-            showToast("Ошибка загрузки: " + e.message, "error");
+        if(type === 'consultation') {
+            extra = {
+                room: document.getElementById('consRoom').value,
+                request: document.getElementById('consRequest').value,
+                content: document.getElementById('consContent').value,
+                result: document.getElementById('consResult').value,
+                recommendations: document.getElementById('consRec').value,
+                format: 'очно'
+            };
+            details = extra.request;
+        } else if (type === 'diagnostics') {
+            extra = {
+                methods: document.getElementById('diagMethods').value,
+                result: document.getElementById('diagResult').value,
+                conclusion: document.getElementById('diagConclusion').value
+            };
+            details = `${extra.methods}: ${extra.result}`;
+        } else if (type === 'patronage') {
+            extra = {
+                place: document.getElementById('patrPlace').value,
+                goal: document.getElementById('patrGoal').value,
+                observations: document.getElementById('patrObs').value,
+                recommendations: document.getElementById('patrRec').value
+            };
+            details = extra.observations;
+        } else if (type === 'correction') {
+            extra = {
+                program: document.getElementById('corrProgram').value,
+                process: document.getElementById('corrProcess').value,
+                notes: document.getElementById('corrNotes').value
+            };
+            details = extra.process;
         }
-    }
 
-    async function uploadToYandex(silent = false) {
-        if(!silent) updateStatus("Загрузка базы на Яндекс.Диск...", "info");
-        try {
-            const { token, path } = await getYandexHeaders();
+        const doc = {
+            _id: `log_${Date.now()}`,
+            type: 'log',
+            log_type: type,
+            client_id: clientId,
+            date: date,
+            extra: extra,
+            details: details,
+            timestamp: new Date().toISOString()
+        };
 
-            const allDocs = await db.allDocs({ include_docs: true });
-            const exportData = allDocs.rows.map(r => r.doc);
-            const blob = new Blob([JSON.stringify(exportData)], {type: "application/json"});
+        await db.put(doc);
+        await saveAttendanceMark(clientId, date, true);
 
-            let fileId = await getFileId(path, token);
-            let uploadUrl;
-
-            if (fileId) {
-                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}&overwrite=true`, {
-                    headers: { Authorization: `OAuth ${token}` }
-                });
-                const data = await resp.json();
-                uploadUrl = data.upload_url;
-            } else {
-                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}`, {
-                    headers: { Authorization: `OAuth ${token}` }
-                });
-                const data = await resp.json();
-                uploadUrl = data.upload_url;
-            }
-
-            const uploadResp = await fetch(uploadUrl, { method: 'PUT', body: blob });
-
-            if (uploadResp.ok) {
-                updateStatus("✅ Успешно сохранено на Яндекс.Диск", "success");
-                if(!silent) showToast("Данные синхронизированы", "success");
-            } else {
-                throw new Error(`Ошибка: ${uploadResp.statusText}`);
-            }
-
-        } catch (e) {
-            const msg = `Ошибка: ${e.message}`;
-            updateStatus(msg, "error");
-            if(!silent) showToast(msg, "error");
+        showToast("Запись сохранена", "success");
+        
+        // Очистка полей
+        if(type === 'consultation') {
+            document.getElementById('consRoom').value = '';
+            document.getElementById('consRequest').value = '';
+            document.getElementById('consContent').value = '';
+            document.getElementById('consResult').value = '';
+            document.getElementById('consRec').value = '';
         }
+        
+        await renderLogsHistory();
+        await updateStats();
+        resetInactivityTimer();
     }
 
-    async function finishShift() {
-        if(!confirm("Завершить смену и синхронизировать данные с Яндекс.Диском?")) return;
-        await uploadToYandex(false);
-        alert("Смена завершена. Данные сохранены.");
+    async function renderLogsHistory() {
+        const res = await db.allDocs({include_docs: true, startkey: 'log_', endkey: 'log_\uffff', descending: true, limit: 10});
+        const list = document.getElementById('logHistory');
+        list.innerHTML = '';
+        
+        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
+        const clientMap = {};
+        clients.rows.forEach(r => clientMap[r.doc._id] = r.doc.fio);
+
+        res.rows.forEach(r => {
+            const log = r.doc;
+            const fio = clientMap[log.client_id] || 'Неизвестно';
+            const card = document.createElement('div');
+            card.className = `entry-card ${log.log_type === 'diagnostics' ? 'diag' : (log.log_type === 'patronage' ? 'patron' : '')}`;
+            
+            let contentPreview = log.details.substring(0, 100) + (log.details.length > 100 ? '...' : '');
+            
+            card.innerHTML = `
+                <div class="entry-header">
+                    <div>
+                        <div class="entry-client">${fio}</div>
+                        <div class="entry-date">${log.date} <span class="entry-type">${log.log_type}</span></div>
+                    </div>
+                    <div class="entry-actions">
+                        ${log.log_type === 'consultation' ? `<button class="icon-btn print" title="Печать бланка" onclick="generateBlank('${log._id}')"><i class="fas fa-file-word"></i></button>` : ''}
+                        <button class="icon-btn" title="Удалить" onclick="deleteDoc('${log._id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="entry-content">${contentPreview}</div>
+            `;
+            list.appendChild(card);
+        });
+        
+        if(res.rows.length === 0) list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Записей нет</div>';
     }
 
-    // --- ФУНКЦИИ ПРИЛОЖЕНИЯ ---
-    async function updateStats() {
-        const clients = await db.allDocs({ startkey: 'client_', endkey: 'client_\uffff' });
-        const records = await db.allDocs({ startkey: 'cons_', endkey: 'cons_\uffff' });
-        const diags = await db.allDocs({ startkey: 'diag_', endkey: 'diag_\uffff' });
-
-        document.getElementById('stat-clients').innerText = clients.rows.length;
-        document.getElementById('stat-records').innerText = records.rows.length + diags.rows.length;
-    }
-
+    // --- КЛИЕНТЫ ---
     async function importClients() {
         const raw = document.getElementById('importData').value;
         if(!raw) return;
@@ -745,7 +600,11 @@
             const clients = JSON.parse(raw);
             const docs = clients.map(c => ({
                 _id: 'client_' + Date.now() + '_' + Math.random(),
-                type: 'client', fio: c.fio, dob: c.dob, group: c.group || ''
+                type: 'client',
+                fio: c.fio,
+                dob: c.dob || '',
+                group: c.group || '',
+                comment: c.comment || ''
             }));
             await db.bulkDocs(docs);
             showToast(`Импортировано ${docs.length} клиентов`, "success");
@@ -761,20 +620,24 @@
         const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
         const list = document.getElementById('clientsList');
         list.innerHTML = '';
-
+        
         let count = 0;
         res.rows.forEach(r => {
             const c = r.doc;
             if(c.fio.toLowerCase().includes(search)) {
                 count++;
                 const card = document.createElement('div');
-                card.className = 'client-card';
+                card.className = 'entry-card';
+                card.style.borderLeftColor = '#7F8C8D';
                 card.innerHTML = `
-                    <div class="client-name">${c.fio}</div>
-                    <div class="client-dob">ДР: ${c.dob} ${c.group ? '| ' + c.group : ''}</div>
-                    <div class="client-actions">
-                        <button class="icon-btn edit" title="Редактировать"><i class="fas fa-edit"></i></button>
-                        <button class="icon-btn" title="Удалить" onclick="deleteClient('${c._id}')"><i class="fas fa-trash"></i></button>
+                    <div class="entry-header">
+                        <div>
+                            <div class="entry-client">${c.fio}</div>
+                            <div class="entry-date">ДР: ${c.dob} ${c.group ? '| ' + c.group : ''}</div>
+                        </div>
+                        <div class="entry-actions">
+                            <button class="icon-btn" onclick="deleteDoc('${c._id}')"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
                 `;
                 list.appendChild(card);
@@ -783,126 +646,290 @@
         if(count === 0) list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Клиенты не найдены</div>';
     }
 
-    async function deleteClient(id) {
-        if(!confirm('Вы уверены? Это удалит клиента и все его записи.')) return;
-        // Удаляем клиента и все связанные записи
-        const allDocs = await db.allDocs({ include_docs: true });
-        const toDelete = allDocs.rows.filter(r => r.doc.clientId === id || r.doc._id === id).map(r => r.doc);
-        await db.bulkDocs(toDelete.map(d => ({...d, _deleted: true})));
-        showToast("Клиент удален", "success");
-        await renderClients();
-        await updateStats();
-    }
-
     async function loadClientsToSelects() {
         const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
         const opts = '<option value="">-- Выберите клиента --</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
-
-        document.getElementById('consClientSelect').innerHTML = opts;
-        document.getElementById('diagClientSelect').innerHTML = opts;
-
+        
+        document.getElementById('logClient').innerHTML = opts;
+        
         const filterOpts = '<option value="all">Все клиенты</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
-        document.getElementById('filterClientSelect').innerHTML = filterOpts;
+        document.getElementById('reportClientFilter').innerHTML = filterOpts;
     }
 
-    async function saveConsultation() {
-        const cid = document.getElementById('consClientSelect').value;
-        if(!cid) return showToast('Выберите клиента', "error");
-
-        await db.put({
-            _id: 'cons_' + Date.now(),
-            type: 'consultation',
-            clientId: cid,
-            date: document.getElementById('consDate').value,
-            consType: document.getElementById('consType').value,
-            content: document.getElementById('consContent').value,
-            rec: document.getElementById('consRec').value,
-            timestamp: new Date().toISOString()
+    // --- ПОСЕЩАЕМОСТЬ ---
+    async function loadAttendance() {
+        const date = document.getElementById('attDate').value;
+        if(!date) return;
+        
+        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
+        const attData = await db.allDocs({include_docs: true, startkey: 'att_', endkey: 'att_\uffff'});
+        
+        const attMap = {};
+        attData.rows.forEach(r => {
+            if(r.doc.date === date) attMap[r.doc.client_id] = r.doc.is_present;
         });
 
-        showToast("Запись сохранена", "success");
-        document.getElementById('consContent').value = '';
-        document.getElementById('consRec').value = '';
-        resetInactivityTimer();
+        const tbody = document.getElementById('attList');
+        tbody.innerHTML = '';
 
-        // Показать последние записи
-        const history = document.getElementById('consHistory');
-        const allCons = await db.allDocs({include_docs:true, startkey:'cons_', endkey:'cons_\uffff', descending:true, limit:3});
-        history.innerHTML = allCons.rows.map(r => `
-            <div class="client-card" style="padding:15px;">
-                <div style="font-weight:bold; color:var(--primary-blue);">${r.doc.date} (${r.doc.consType})</div>
-                <div style="margin-top:5px;">${r.doc.content.substring(0, 100)}...</div>
-            </div>
-        `).join('');
-    }
-
-    async function saveDiagnosis() {
-        const cid = document.getElementById('diagClientSelect').value;
-        if(!cid) return showToast('Выберите клиента', "error");
-
-        await db.put({
-            _id: 'diag_' + Date.now(),
-            type: 'diagnosis',
-            clientId: cid,
-            method: document.getElementById('diagMethod').value,
-            result: document.getElementById('diagResult').value,
-            interp: document.getElementById('diagInterp').value,
-            timestamp: new Date().toISOString()
+        clients.rows.forEach(r => {
+            const c = r.doc;
+            const isPresent = attMap[c._id] || false;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="text-align:left;">${c.fio}</td>
+                <td>
+                    <button class="check-btn ${isPresent ? 'present' : ''}" onclick="toggleAtt(this, '${c._id}')">
+                        ${isPresent ? '+' : ''}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
+    }
 
-        showToast("Результат сохранен", "success");
-        document.getElementById('diagResult').value = '';
-        document.getElementById('diagInterp').value = '';
+    function toggleAtt(btn, clientId) {
+        btn.classList.toggle('present');
+        btn.innerText = btn.classList.contains('present') ? '+' : '';
+    }
+
+    async function saveAttendanceMark(clientId, date, isPresent) {
+        const id = `att_${clientId}_${date}`;
+        try {
+            const existing = await db.get(id).catch(() => null);
+            if(existing) {
+                existing.is_present = isPresent;
+                await db.put(existing);
+            } else {
+                await db.put({ _id: id, type: 'attendance', client_id: clientId, date: date, is_present: isPresent });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function saveAttendance() {
+        const date = document.getElementById('attDate').value;
+        const rows = document.querySelectorAll('#attList tr');
+        let count = 0;
+        
+        for(let tr of rows) {
+            const btn = tr.querySelector('.check-btn');
+            const clientId = btn.getAttribute('onclick').split("'")[1];
+            const isPresent = btn.classList.contains('present');
+            await saveAttendanceMark(clientId, date, isPresent);
+            if(isPresent) count++;
+        }
+        
+        showToast(`Сохранено ${count} отметок`, "success");
         resetInactivityTimer();
     }
 
-    async function renderResults() {
-        const filterId = document.getElementById('filterClientSelect').value;
-        const allDiags = await db.allDocs({include_docs:true, startkey:'diag_', endkey:'diag_\uffff', descending:true});
+    // --- ОТЧЕТЫ И ГЕНЕРАЦИЯ DOCX ---
+    async function renderReportsList() {
+        const filterId = document.getElementById('reportClientFilter').value;
+        const logs = await db.allDocs({include_docs: true, startkey: 'log_', endkey: 'log_\uffff'});
+        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
+        const clientMap = {};
+        clients.rows.forEach(r => clientMap[r.doc._id] = r.doc.fio);
 
-        const list = document.getElementById('resultsList');
+        const list = document.getElementById('reportsList');
         list.innerHTML = '';
 
-        let filtered = allDiags.rows;
+        let filtered = logs.rows.filter(r => r.doc.log_type === 'consultation');
         if(filterId !== 'all') {
-            filtered = filtered.filter(r => r.doc.clientId === filterId);
+            filtered = filtered.filter(r => r.doc.client_id === filterId);
         }
 
+        filtered.sort((a,b) => new Date(b.doc.date) - new Date(a.doc.date));
+
         if(filtered.length === 0) {
-            list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Результатов нет</div>';
+            list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Нет записей консультаций</div>';
             return;
         }
 
         filtered.forEach(r => {
-            const d = r.doc;
+            const log = r.doc;
+            const fio = clientMap[log.client_id] || 'Неизвестно';
             const card = document.createElement('div');
-            card.className = 'result-card';
+            card.className = 'entry-card';
             card.innerHTML = `
-                <div class="result-method">${d.method}</div>
-                <span class="result-date">${new Date(d.timestamp).toLocaleString('ru-RU')}</span>
-                <div class="result-score">${d.result}</div>
-                <div class="result-desc">${d.interp}</div>
+                <div class="entry-header">
+                    <div>
+                        <div class="entry-client">${fio}</div>
+                        <div class="entry-date">${log.date}</div>
+                    </div>
+                    <button class="big-btn btn-blue" style="width:auto; padding: 8px 15px; margin:0;" onclick="generateBlank('${log._id}')">
+                        <i class="fas fa-file-word"></i> Скачать бланк
+                    </button>
+                </div>
+                <div class="entry-content">${log.details.substring(0, 80)}...</div>
             `;
             list.appendChild(card);
         });
     }
 
-    async function exportCSV() {
-        const allDiags = await db.allDocs({include_docs:true, startkey:'diag_', endkey:'diag_\uffff'});
-        const allClients = await db.allDocs({include_docs:true, startkey:'client_', endkey:'client_\uffff'});
-        const clientsMap = {};
-        allClients.rows.forEach(r => clientsMap[r.doc._id] = r.doc.fio);
+    async function generateBlank(logId) {
+        const log = await db.get(logId);
+        const client = await db.get(log.client_id);
+        const extra = log.extra || {};
 
-        let csv = "Дата,Клиент,Методика,Результат,Интерпретация\n";
-        allDiags.rows.forEach(r => {
-            const d = r.doc;
-            const fio = clientsMap[d.clientId] || "Неизвестно";
-            csv += `"${new Date(d.timestamp).toLocaleDateString('ru-RU')}","${fio}","${d.method}","${d.result}","${d.interp.replace(/"/g, '""')}"\n`;
+        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, HeadingLevel } = docx;
+
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: [
+                    new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: "center", style: "Normal" }),
+                    new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: "center", style: "Normal" }),
+                    new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", alignment: "center", heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
+                    
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: [
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата консультации:", bold:true})]}), new TableCell({children: [new Paragraph(log.date)]}) ] }),
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. получателя услуг:", bold:true})]}), new TableCell({children: [new Paragraph(client.fio)]}) ] }),
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client.dob || "")]}) ] }),
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната / Категория:", bold:true})]}), new TableCell({children: [new Paragraph(extra.room || "")]}) ] }),
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. психолога:", bold:true})]}), new TableCell({children: [new Paragraph("Психолог Интерната")]}) ] }),
+                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Вид консультации:", bold:true})]}), new TableCell({children: [new Paragraph(extra.format || "очно")]}) ] }),
+                        ]
+                    }),
+
+                    new Paragraph({ text: "", spacing: { after: 200 } }),
+                    new Paragraph({ text: "1. Запрос ПСУ", heading: HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: extra.request || "", spacing: { after: 200 } }),
+                    new Paragraph({ text: "2. Содержание консультационной работы", heading: HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: extra.content || "", spacing: { after: 200 } }),
+                    new Paragraph({ text: "3. Результаты консультации", heading: HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: extra.result || "", spacing: { after: 200 } }),
+                    new Paragraph({ text: "4. Рекомендации", heading: HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: extra.recommendations || "", spacing: { after: 400 } }),
+
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: [
+                            new TableRow({ children: [ 
+                                new TableCell({children: [new Paragraph("Психолог: __________________")] }), 
+                                new TableCell({children: [new Paragraph("Дата: __________________")] }) 
+                            ]}),
+                            new TableRow({ children: [ 
+                                new TableCell({children: [new Paragraph("Подпись получателя услуг: __________________")] }), 
+                                new TableCell({children: [new Paragraph("Дата: __________________")] }) 
+                            ]}),
+                        ]
+                    })
+                ]
+            }]
         });
 
-        const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-        saveAs(blob, `psych_tests_export_${new Date().toISOString().slice(0,10)}.csv`);
-        showToast("CSV файл скачан", "success");
+        Packer.toBlob(doc).then(blob => {
+            saveAs(blob, `Blank_${client.fio}_${log.date}.docx`);
+            showToast("Бланк сгенерирован", "success");
+        });
+    }
+
+    // --- УДАЛЕНИЕ ---
+    async function deleteDoc(id) {
+        if(!confirm('Удалить эту запись?')) return;
+        const doc = await db.get(id);
+        await db.remove(doc);
+        showToast("Удалено", "success");
+        renderClients();
+        renderLogsHistory();
+        renderReportsList();
+        updateStats();
+    }
+
+    async function updateStats() {
+        const clients = await db.allDocs({ startkey: 'client_', endkey: 'client_\uffff' });
+        const logs = await db.allDocs({ startkey: 'log_', endkey: 'log_\uffff' });
+        document.getElementById('stat-clients').innerText = clients.rows.length;
+        document.getElementById('stat-logs').innerText = logs.rows.length;
+    }
+
+    // --- ЯНДЕКС ДИСК (Синхронизация) ---
+    async function getYandexHeaders() {
+        const token = document.getElementById('ya-token').value;
+        const path = document.getElementById('ya-path').value;
+        if (!token || token === "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ЯНДЕКСА") throw new Error("Нет токена!");
+        return { token, path };
+    }
+
+    async function getFileId(path, token) {
+        const url = `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(path)}`;
+        const resp = await fetch(url, { headers: { Authorization: `OAuth ${token}` } });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return data.id;
+    }
+
+    async function downloadFromYandex() {
+        updateStatus("Скачивание базы...", "info");
+        try {
+            const { token, path } = await getYandexHeaders();
+            let fileId = await getFileId(path, token);
+            if (!fileId) { updateStatus("Файл не найден", "warning"); return; }
+
+            const dlUrlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(path)}`, { headers: { Authorization: `OAuth ${token}` } });
+            const dlData = await dlUrlResp.json();
+            const fileResp = await fetch(dlData.href);
+            const jsonData = await fileResp.json();
+
+            await db.destroy();
+            db = new PouchDB(DB_NAME);
+            await db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
+            await db.createIndex({ index: { fields: ['fio'] } });
+
+            if (jsonData.length > 0) {
+                await db.bulkDocs(jsonData);
+                updateStatus(`✅ Загружено ${jsonData.length} записей`, "success");
+                showToast("База обновлена!", "success");
+            }
+            await updateStats();
+            await renderClients();
+            await loadClientsToSelects();
+            await renderLogsHistory();
+
+        } catch (e) {
+            updateStatus(`Ошибка: ${e.message}`, "error");
+            showToast("Ошибка загрузки", "error");
+        }
+    }
+
+    async function uploadToYandex(silent = false) {
+        if(!silent) updateStatus("Загрузка базы...", "info");
+        try {
+            const { token, path } = await getYandexHeaders();
+            const allDocs = await db.allDocs({ include_docs: true });
+            const exportData = allDocs.rows.map(r => r.doc);
+            const blob = new Blob([JSON.stringify(exportData)], {type: "application/json"});
+
+            let fileId = await getFileId(path, token);
+            let uploadUrl;
+            if (fileId) {
+                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}&overwrite=true`, { headers: { Authorization: `OAuth ${token}` } });
+                const data = await resp.json();
+                uploadUrl = data.upload_url;
+            } else {
+                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}`, { headers: { Authorization: `OAuth ${token}` } });
+                const data = await resp.json();
+                uploadUrl = data.upload_url;
+            }
+
+            const uploadResp = await fetch(uploadUrl, { method: 'PUT', body: blob });
+            if (uploadResp.ok) {
+                updateStatus("✅ Сохранено на Яндекс.Диск", "success");
+                if(!silent) showToast("Данные синхронизированы", "success");
+            } else { throw new Error("Ошибка загрузки"); }
+        } catch (e) {
+            updateStatus(`Ошибка: ${e.message}`, "error");
+            if(!silent) showToast("Ошибка сохранения", "error");
+        }
+    }
+
+    async function finishShift() {
+        if(!confirm("Завершить смену и синхронизировать данные?")) return;
+        await uploadToYandex(false);
+        alert("Смена завершена. Данные сохранены.");
     }
 
     // Предупреждение при закрытии
