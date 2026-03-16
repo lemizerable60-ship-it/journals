@@ -4,39 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АРМ Психолога | Южный дом-интернат</title>
-    <!-- Vue 3 -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- Dexie.js (IndexedDB wrapper) -->
+    
+    <!-- 1. Загружаем библиотеки -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script> <!-- Версия PROD (быстрее) -->
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Docx.js -->
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
-    <!-- FileSaver -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        [v-cloak] { display: none; }
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        /* Стили для загрузки и скрытия до старта Vue */
+        body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
+        
+        /* v-cloak скрывает приложение, пока Vue не загрузится */
+        [v-cloak] { display: none !important; }
+        
+        /* Экран загрузки (виден, если Vue сломался) */
+        #startup-error {
+            position: fixed; inset: 0; background: #fff; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center; color: #ef4444;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #e2e8f0;
+            border-top-color: #3b82f6; border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden" v-cloak>
-    <div id="app" class="flex h-full">
+<body>
+
+    <!-- Индикатор загрузки (исчезнет сам, если все ок) -->
+    <div id="loader" style="position:fixed;inset:0;background:#f8fafc;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div class="spinner"></div>
+        <div style="color:#64748b;font-weight:600;">Загрузка системы...</div>
+    </div>
+
+    <!-- Ошибка старта (покажется, если Vue не запустится) -->
+    <div id="startup-error" style="display:none;">
+        <h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:10px;">⚠️ Ошибка запуска приложения</h2>
+        <p id="error-text" style="max-width:600px;line-height:1.5;"></p>
+        <button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">Обновить страницу</button>
+    </div>
+
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+    <div id="app" v-cloak class="flex h-screen overflow-hidden">
         
         <!-- SIDEBAR -->
         <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20 hidden md:flex">
             <div class="p-6 border-b border-slate-800">
                 <div class="flex items-center gap-3 text-white">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-xl font-bold shadow-lg shadow-blue-900/50">Ψ</div>
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-xl font-bold shadow-lg">Ψ</div>
                     <div>
                         <h1 class="font-bold text-lg tracking-tight">АРМ Психолога</h1>
                         <p class="text-xs text-slate-500">Южный дом-интернат</p>
@@ -47,147 +67,120 @@
             <nav class="flex-1 overflow-y-auto p-4 space-y-1">
                 <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
                     :class="['w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group', 
-                    currentTab === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white']">
-                    <i :class="[tab.icon, 'w-5 text-center', currentTab === tab.id ? 'text-white' : 'text-slate-500 group-hover:text-white']"></i>
+                    currentTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white']">
+                    <i :class="[tab.icon, 'w-5 text-center']"></i>
                     <span class="font-medium">{{ tab.name }}</span>
                 </button>
             </nav>
 
             <div class="p-4 border-t border-slate-800 space-y-3 bg-slate-900">
-                <button @click="syncToCloud" :disabled="isSyncing" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
+                <button @click="syncToCloud" :disabled="isSyncing" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
                     <i class="fas fa-cloud-upload-alt" :class="{'fa-spin': isSyncing}"></i> 
                     {{ isSyncing ? 'Синхронизация...' : 'Сохранить в Облако' }}
                 </button>
                 <button @click="loadFromCloud" :disabled="isSyncing" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors text-sm">
                     <i class="fas fa-download mr-2"></i> Загрузить из Облака
                 </button>
-                <div class="text-[10px] text-slate-600 text-center uppercase tracking-widest pt-2">v 2.0 | Offline Ready</div>
             </div>
         </aside>
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col min-w-0 bg-white">
-            <!-- Header -->
-            <header class="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    {{ currentTabName }}
-                    <span v-if="currentTab === 'clients'" class="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{{ clients.length }} чел.</span>
-                </h2>
+            <header class="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white sticky top-0 z-10">
+                <h2 class="text-xl font-bold text-slate-800">{{ currentTabName }}</h2>
                 <div class="flex gap-3">
-                    <button v-if="currentTab !== 'dashboard'" @click="openModal" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-2 font-medium">
-                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Добавить запись</span>
-                    </button>
-                    <button v-if="currentTab === 'clients'" @click="importClientsPrompt" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                    <button v-if="currentTab === 'clients'" @click="importClientsPrompt" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium">
                         <i class="fas fa-file-import mr-1"></i> Импорт
+                    </button>
+                    <button v-if="!['dashboard','attendance'].includes(currentTab)" @click="openModal" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md transition-transform active:scale-95 flex items-center gap-2 font-medium">
+                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Добавить</span>
                     </button>
                 </div>
             </header>
 
-            <!-- Content Area -->
             <div class="flex-1 overflow-auto p-6 bg-slate-50">
                 
                 <!-- DASHBOARD -->
                 <div v-if="currentTab === 'dashboard'" class="max-w-5xl mx-auto space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                            <div class="text-slate-500 text-sm font-medium mb-1">Всего клиентов</div>
-                            <div class="text-3xl font-bold text-slate-800">{{ stats.clients }}</div>
+                            <div class="text-slate-500 text-sm font-medium mb-1">Клиентов</div>
+                            <div class="text-3xl font-bold text-slate-800">{{ clients.length }}</div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                             <div class="text-slate-500 text-sm font-medium mb-1">Записей в журналах</div>
-                            <div class="text-3xl font-bold text-slate-800">{{ stats.logs }}</div>
+                            <div class="text-3xl font-bold text-slate-800">{{ logs.length }}</div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                            <div class="text-slate-500 text-sm font-medium mb-1">Посещаемость сегодня</div>
-                            <div class="text-3xl font-bold text-emerald-600">{{ stats.attendanceToday }} <span class="text-sm text-slate-400 font-normal">чел.</span></div>
+                            <div class="text-slate-500 text-sm font-medium mb-1">Статус</div>
+                            <div class="text-lg font-bold text-emerald-600 flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i> Готов к работе
+                            </div>
                         </div>
                     </div>
-                    
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-6">
-                        <h3 class="font-bold text-blue-900 mb-2"><i class="fas fa-info-circle mr-2"></i>Как это работает</h3>
+                        <h3 class="font-bold text-blue-900 mb-2"><i class="fas fa-info-circle mr-2"></i>Инструкция</h3>
                         <ul class="space-y-2 text-sm text-blue-800 list-disc list-inside">
-                            <li>Все данные хранятся локально в браузере (безопасно, работает без интернета).</li>
-                            <li>Нажми <b>"Сохранить в Облако"</b>, чтобы создать резервную копию на Яндекс.Диске.</li>
-                            <li>На другом устройстве нажми <b>"Загрузить из Облака"</b>, чтобы получить все данные.</li>
-                            <li>Файл бэкапа: <code class="bg-white px-1 rounded">/journals_backup.json</code> в корне вашего Диска.</li>
+                            <li>Данные хранятся в браузере.</li>
+                            <li>Нажми <b>"Сохранить в Облако"</b>, чтобы сделать бэкап на Яндекс.Диск.</li>
+                            <li>Файл бэкапа: <code class="bg-white px-1 rounded">/journals_backup.json</code></li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- LISTS (Clients, Logs, Attendance) -->
-                <div v-else class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <!-- Filters for Logs -->
-                    <div v-if="['consultations', 'diagnostics', 'patronage', 'correction'].includes(currentTab)" class="p-4 border-b border-slate-100 bg-slate-50 flex gap-4 flex-wrap">
-                        <input type="date" v-model="filters.date" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <select v-model="filters.clientId" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none max-w-xs">
-                            <option value="">Все клиенты</option>
-                            <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option>
-                        </select>
-                        <button @click="applyFilters" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700">Применить</button>
-                        <button @click="resetFilters" class="text-slate-500 px-4 py-1.5 text-sm hover:text-slate-700">Сброс</button>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
-                                <tr>
-                                    <th class="p-4 w-32">Дата</th>
-                                    <th class="p-4 w-64">Клиент</th>
-                                    <th class="p-4">Содержание / Детали</th>
-                                    <th class="p-4 w-48 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 text-slate-700 text-sm">
-                                <tr v-for="item in filteredItems" :key="item.id" class="hover:bg-blue-50/50 transition-colors group">
-                                    <td class="p-4 whitespace-nowrap font-mono text-slate-500">{{ formatDate(item.date) }}</td>
-                                    <td class="p-4 font-medium text-slate-900">{{ getClientName(item.client_id) }}</td>
-                                    <td class="p-4 text-slate-600 truncate max-w-md" :title="getItemDetails(item)">{{ getItemDetails(item) }}</td>
-                                    <td class="p-4 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button v-if="item.log_type === 'consultation'" @click="downloadDoc(item)" title="Скачать бланк DOCX" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-100 rounded-full transition-colors">
-                                            <i class="fas fa-file-word"></i>
-                                        </button>
-                                        <button @click="deleteItem(item.id)" title="Удалить" class="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr v-if="filteredItems.length === 0">
-                                    <td colspan="4" class="p-12 text-center text-slate-400">
-                                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                                        <p>В этом журнале пока нет записей</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <!-- LISTS (Consultations, Diagnostics, etc.) -->
+                <div v-else-if="currentTab !== 'attendance'" class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b">
+                            <tr>
+                                <th class="p-4 w-32">Дата</th>
+                                <th class="p-4 w-64">Клиент</th>
+                                <th class="p-4">Детали</th>
+                                <th class="p-4 w-48 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            <tr v-for="item in filteredItems" :key="item.id" class="hover:bg-blue-50/50">
+                                <td class="p-4 whitespace-nowrap font-mono text-slate-500">{{ formatDate(item.date) }}</td>
+                                <td class="p-4 font-medium">{{ getClientName(item.client_id) }}</td>
+                                <td class="p-4 text-slate-600 truncate max-w-md">{{ getItemDetails(item) }}</td>
+                                <td class="p-4 text-right space-x-2">
+                                    <button v-if="item.log_type === 'consultation'" @click="downloadDoc(item)" class="text-blue-600 hover:text-blue-800 p-2">
+                                        <i class="fas fa-file-word"></i>
+                                    </button>
+                                    <button @click="deleteItem(item.id)" class="text-red-400 hover:text-red-600 p-2">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredItems.length === 0">
+                                <td colspan="4" class="p-12 text-center text-slate-400">Записей нет. Нажмите "Добавить", чтобы создать первую.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <!-- ATTENDANCE VIEW -->
+                <!-- ATTENDANCE -->
                 <div v-if="currentTab === 'attendance'" class="max-w-6xl mx-auto space-y-4">
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <label class="font-bold text-slate-700">Дата:</label>
-                            <input type="date" v-model="attendanceDate" @change="loadAttendance" class="border border-slate-300 rounded-lg px-3 py-2 text-lg font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <label class="font-bold">Дата:</label>
+                            <input type="date" v-model="attendanceDate" @change="loadAttendance" class="border rounded-lg px-3 py-2">
                         </div>
-                        <button @click="saveAttendance" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-600/20 transition-transform active:scale-95">
-                            <i class="fas fa-save mr-2"></i> Сохранить отметки
-                        </button>
+                        <button @click="saveAttendance" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold">Сохранить</button>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                         <table class="w-full">
                             <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b">
-                                <tr>
-                                    <th class="p-4 text-left">ФИО Клиента</th>
-                                    <th class="p-4 text-center w-32">Статус</th>
-                                </tr>
+                                <tr><th class="p-4 text-left">ФИО</th><th class="p-4 text-center">Статус</th></tr>
                             </thead>
                             <tbody class="divide-y">
-                                <tr v-for="client in clients" :key="client.id" class="hover:bg-slate-50">
+                                <tr v-for="client in clients" :key="client.id">
                                     <td class="p-4 font-medium">{{ client.fio }}</td>
                                     <td class="p-4 text-center">
                                         <button @click="toggleAttendance(client.id)" 
-                                            :class="['w-12 h-12 rounded-full text-xl font-bold transition-all shadow-sm', 
-                                            attendanceMap[client.id] ? 'bg-emerald-500 text-white shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-300 hover:bg-slate-200']">
+                                            :class="['w-10 h-10 rounded-full text-lg font-bold transition-all', 
+                                            attendanceMap[client.id] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300']">
                                             {{ attendanceMap[client.id] ? '+' : '' }}
                                         </button>
                                     </td>
@@ -200,180 +193,101 @@
             </div>
         </main>
 
-        <!-- MODAL FOR NEW ENTRY -->
+        <!-- MODAL (New Entry) -->
         <transition name="fade">
-            <div v-if="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-                <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200 my-8">
-                    <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                        <h3 class="font-bold text-slate-800 text-lg">Новая запись: {{ currentTabName }}</h3>
-                        <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
+            <div v-if="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                    <div class="p-6 border-b bg-slate-50 flex justify-between">
+                        <h3 class="font-bold text-lg">Новая запись</h3>
+                        <button @click="showModal = false" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
                     </div>
-                    
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Дата</label>
-                                <input v-model="form.date" type="date" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <input v-model="form.date" type="date" class="w-full border rounded-lg p-2.5">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Клиент</label>
-                                <select v-model="form.client_id" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                                    <option value="">Выберите клиента...</option>
+                                <select v-model="form.client_id" class="w-full border rounded-lg p-2.5 bg-white">
+                                    <option value="">Выберите...</option>
                                     <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option>
                                 </select>
                             </div>
                         </div>
-
-                        <!-- Dynamic Fields based on Tab -->
+                        
+                        <!-- Dynamic Fields -->
                         <div v-if="currentTab === 'consultations'">
-                            <div class="grid grid-cols-2 gap-4 mb-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Комната / Категория</label>
-                                    <input v-model="form.extra.room" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Напр. 105, Группа А">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Вид</label>
-                                    <select v-model="form.extra.format" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                                        <option value="очно">Очно</option>
-                                        <option value="дистанционно">Дистанционно</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Запрос (Жалобы)</label>
-                                    <textarea v-model="form.extra.request" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Содержание работы</label>
-                                    <textarea v-model="form.extra.content" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Результат</label>
-                                    <textarea v-model="form.extra.result" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Рекомендации</label>
-                                    <textarea v-model="form.extra.recommendations" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                                </div>
-                            </div>
+                            <input v-model="form.extra.room" placeholder="Комната / Категория" class="w-full border rounded-lg p-2.5 mb-3">
+                            <textarea v-model="form.extra.request" placeholder="Запрос (Жалобы)" rows="2" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
+                            <textarea v-model="form.extra.content" placeholder="Содержание работы" rows="3" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
+                            <textarea v-model="form.extra.result" placeholder="Результат" rows="2" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
+                            <textarea v-model="form.extra.recommendations" placeholder="Рекомендации" rows="2" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
-
                         <div v-else-if="currentTab === 'diagnostics'">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Методики</label>
-                                <input v-model="form.extra.methods" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Напр. MMSE, HADS">
-                            </div>
-                            <div class="mt-3">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Результат (баллы)</label>
-                                <input v-model="form.extra.result" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div class="mt-3">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Заключение</label>
-                                <textarea v-model="form.extra.conclusion" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                            </div>
+                            <input v-model="form.extra.methods" placeholder="Методики (MMSE, HADS...)" class="w-full border rounded-lg p-2.5 mb-3">
+                            <input v-model="form.extra.result" placeholder="Результат (баллы)" class="w-full border rounded-lg p-2.5 mb-3">
+                            <textarea v-model="form.extra.conclusion" placeholder="Заключение" rows="3" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
-
                         <div v-else-if="currentTab === 'patronage'">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Место / Условия</label>
-                                <input v-model="form.extra.place" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div class="mt-3">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Цель</label>
-                                <input v-model="form.extra.goal" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div class="mt-3">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Наблюдения</label>
-                                <textarea v-model="form.extra.observations" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                            </div>
+                            <input v-model="form.extra.place" placeholder="Место" class="w-full border rounded-lg p-2.5 mb-3">
+                            <textarea v-model="form.extra.observations" placeholder="Наблюдения" rows="4" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
-
                         <div v-else-if="currentTab === 'correction'">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Программа</label>
-                                <input v-model="form.extra.program" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div class="mt-3">
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ход занятия</label>
-                                <textarea v-model="form.extra.process" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
-                            </div>
+                            <input v-model="form.extra.program" placeholder="Программа" class="w-full border rounded-lg p-2.5 mb-3">
+                            <textarea v-model="form.extra.process" placeholder="Ход занятия" rows="4" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
-
-                        <!-- Client Creation Fallback (if no clients) -->
-                        <div v-if="clients.length === 0" class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mt-4">
-                            <p class="text-sm text-yellow-800 font-bold mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> Список клиентов пуст!</p>
-                            <p class="text-xs text-yellow-700 mb-2">Сначала добавьте клиентов через кнопку "Импорт" или создайте нового вручную здесь:</p>
-                            <div class="flex gap-2">
-                                <input v-model="newClientFio" placeholder="ФИО клиента" class="flex-1 border border-yellow-300 rounded px-2 py-1 text-sm">
-                                <button @click="createQuickClient" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-yellow-700">Добавить</button>
-                            </div>
-                        </div>
-
                     </div>
-
-                    <div class="p-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                        <button @click="showModal = false" class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors">Отмена</button>
-                        <button @click="saveEntry" :disabled="!form.client_id" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                            Сохранить в базу
-                        </button>
+                    <div class="p-6 bg-slate-50 border-t flex justify-end gap-3">
+                        <button @click="showModal = false" class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-lg">Отмена</button>
+                        <button @click="saveEntry" :disabled="!form.client_id" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold disabled:opacity-50">Сохранить</button>
                     </div>
                 </div>
             </div>
         </transition>
 
-        <!-- Toast Notification -->
+        <!-- TOAST NOTIFICATION -->
         <transition name="fade">
-            <div v-if="toast.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white font-medium flex items-center gap-3 z-50', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
-                <i :class="['fas', toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle']"></i>
+            <div v-if="toast.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white font-medium', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
                 {{ toast.message }}
             </div>
         </transition>
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch, reactive } = Vue;
+        // Проверка наличия библиотек перед стартом
+        if (typeof Vue === 'undefined' || typeof Dexie === 'undefined') {
+            document.getElementById('loader').style.display = 'none';
+            const errDiv = document.getElementById('startup-error');
+            errDiv.style.display = 'flex';
+            document.getElementById('error-text').innerText = "Не удалось загрузить библиотеки Vue или Dexie. Проверьте интернет-соединение.";
+            throw new Error("Libraries missing");
+        }
 
-        // --- 1. DATABASE SETUP (Dexie.js) ---
+        // Инициализация БД
         const db = new Dexie("PsychologistARM_DB");
         db.version(1).stores({
-            clients: '++id, fio, dob, group',
+            clients: '++id, fio',
             logs: '++id, log_type, client_id, date',
             attendance: '++id, client_id, date'
         });
 
-        createApp({
+        const app = Vue.createApp({
             setup() {
-                // State
                 const currentTab = ref('dashboard');
                 const showModal = ref(false);
                 const isSyncing = ref(false);
                 const clients = ref([]);
                 const logs = ref([]);
-                const attendanceMap = reactive({}); // { clientId: true/false }
+                const attendanceMap = reactive({});
                 const attendanceDate = ref(new Date().toISOString().split('T')[0]);
-                
-                // Form State
-                const form = reactive({
-                    date: new Date().toISOString().split('T')[0],
-                    client_id: '',
-                    extra: {}
-                });
-                const newClientFio = ref('');
-
-                // Filters
-                const filters = reactive({ date: '', clientId: '' });
-
-                // Toast
+                const form = reactive({ date: new Date().toISOString().split('T')[0], client_id: '', extra: {} });
                 const toast = reactive({ show: false, message: '', type: 'success' });
-
-                // Config
+                
+                // КОНФИГУРАЦИЯ
                 const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g";
                 const YANDEX_PATH = "/journals_backup.json";
 
-                // Tabs Definition
                 const tabs = [
                     { id: 'dashboard', name: 'Главная', icon: 'fas fa-home' },
                     { id: 'clients', name: 'Клиенты', icon: 'fas fa-users' },
@@ -384,360 +298,116 @@
                     { id: 'attendance', name: 'Посещаемость', icon: 'fas fa-calendar-check' }
                 ];
 
-                // Computed
-                const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name || '');
+                const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name);
                 
-                const stats = computed(() => {
-                    const today = new Date().toISOString().split('T')[0];
-                    return {
-                        clients: clients.value.length,
-                        logs: logs.value.length,
-                        attendanceToday: Object.values(attendanceMap).filter(Boolean).length
-                    };
-                });
-
                 const filteredItems = computed(() => {
                     if (['clients', 'attendance', 'dashboard'].includes(currentTab.value)) return [];
-                    
-                    let typeMap = {
-                        'consultations': 'consultation',
-                        'diagnostics': ['diagnostics', /test_/],
-                        'patronage': 'patronage',
-                        'correction': 'correction'
-                    };
-                    
+                    let typeMap = { 'consultations': 'consultation', 'diagnostics': ['diagnostics', /test_/], 'patronage': 'patronage', 'correction': 'correction' };
                     let targetType = typeMap[currentTab.value];
                     
                     return logs.value.filter(item => {
-                        // Type Filter
-                        let matchType = false;
-                        if (Array.isArray(targetType)) {
-                            matchType = targetType.some(t => typeof t === 'string' ? item.log_type === t : item.log_type.match(t));
-                        } else {
-                            matchType = item.log_type === targetType;
-                        }
-                        if (!matchType) return false;
-
-                        // Date Filter
-                        if (filters.date && item.date !== filters.date) return false;
-                        
-                        // Client Filter
-                        if (filters.clientId && item.client_id != filters.clientId) return false;
-
-                        return true;
+                        let match = Array.isArray(targetType) ? targetType.some(t => typeof t === 'string' ? item.log_type === t : item.log_type.match(t)) : item.log_type === targetType;
+                        return match;
                     }).sort((a, b) => new Date(b.date) - new Date(a.date));
                 });
 
-                // Methods
-                const showToast = (msg, type = 'success') => {
-                    toast.message = msg;
-                    toast.type = type;
-                    toast.show = true;
-                    setTimeout(() => toast.show = false, 3000);
-                };
-
                 const loadData = async () => {
-                    clients.value = await db.clients.orderBy('fio').toArray();
-                    logs.value = await db.logs.orderBy('date').reverse().toArray();
-                    if (currentTab.value === 'attendance') loadAttendance();
+                    try {
+                        clients.value = await db.clients.orderBy('fio').toArray();
+                        logs.value = await db.logs.orderBy('date').reverse().toArray();
+                        if (currentTab.value === 'attendance') loadAttendance();
+                    } catch (e) {
+                        console.error("DB Error:", e);
+                        showToast("Ошибка базы данных: " + e.message, 'error');
+                    }
                 };
 
-                const getClientName = (id) => {
-                    const c = clients.value.find(x => x.id === id);
-                    return c ? c.fio : 'Неизвестно';
-                };
-
+                const getClientName = (id) => clients.value.find(c => c.id === id)?.fio || 'Неизвестно';
                 const getItemDetails = (item) => {
                     const ex = item.extra_fields || {};
-                    if (item.log_type === 'consultation') return ex.request || ex.content || 'Нет описания';
-                    if (item.log_type === 'diagnostics' || item.log_type.startsWith('test_')) return `${ex.methods || ''}: ${ex.result || ''}`;
-                    if (item.log_type === 'patronage') return ex.observations || ex.goal;
-                    if (item.log_type === 'correction') return ex.process || ex.program;
-                    return item.details || '';
+                    if (item.log_type === 'consultation') return ex.request || ex.content;
+                    if (item.log_type.startsWith('test_') || item.log_type === 'diagnostics') return `${ex.methods}: ${ex.result}`;
+                    return ex.observations || ex.process || '';
                 };
 
                 const openModal = () => {
-                    if (clients.value.length === 0) {
-                        showToast('Сначала добавьте клиентов!', 'error');
-                        currentTab.value = 'clients';
-                        return;
-                    }
+                    if (clients.value.length === 0) return showToast('Сначала добавьте клиентов!', 'error');
                     form.date = new Date().toISOString().split('T')[0];
                     form.client_id = '';
                     form.extra = {};
                     showModal.value = true;
                 };
 
-                const createQuickClient = async () => {
-                    if (!newClientFio.value) return;
-                    await db.clients.add({ fio: newClientFio.value, dob: null, group: '' });
-                    newClientFio.value = '';
-                    await loadData();
-                    showToast('Клиент добавлен');
-                };
-
                 const saveEntry = async () => {
-                    if (!form.client_id) return showToast('Выберите клиента', 'error');
-                    
-                    let logType = currentTab.value === 'consultations' ? 'consultation' : 
-                                  currentTab.value === 'diagnostics' ? 'diagnostics' :
-                                  currentTab.value === 'patronage' ? 'patronage' : 'correction';
-                    
-                    // Create details summary
-                    let details = '';
-                    if (logType === 'consultation') details = form.extra.request || '';
-                    else if (logType === 'diagnostics') details = `${form.extra.methods}: ${form.extra.result}`;
-                    else if (logType === 'patronage') details = form.extra.observations || '';
-                    else details = form.extra.process || '';
+                    if (!form.client_id) return;
+                    let logType = currentTab.value === 'consultations' ? 'consultation' : currentTab.value === 'diagnostics' ? 'diagnostics' : currentTab.value === 'patronage' ? 'patronage' : 'correction';
+                    let details = logType === 'consultation' ? form.extra.request : (logType === 'diagnostics' ? `${form.extra.methods}: ${form.extra.result}` : form.extra.observations || form.extra.process);
 
-                    await db.logs.add({
-                        log_type: logType,
-                        client_id: parseInt(form.client_id),
-                        date: form.date,
-                        extra_fields: { ...form.extra },
-                        details: details
-                    });
-
-                    // Auto Attendance
-                    await db.attendance.put({
-                        client_id: parseInt(form.client_id),
-                        date: form.date,
-                        is_present: true
-                    }, `[${parseInt(form.client_id)},${form.date}]`); // Composite key logic handled by query usually, but Dexie needs unique index or we just add
+                    await db.logs.add({ log_type: logType, client_id: parseInt(form.client_id), date: form.date, extra_fields: { ...form.extra }, details });
+                    
+                    // Авто-посещаемость
+                    try {
+                        await db.attendance.put({ client_id: parseInt(form.client_id), date: form.date, is_present: true }, `[${parseInt(form.client_id)},${form.date}]`);
+                    } catch(e) { console.warn("Attendance sync warning", e); }
 
                     showModal.value = false;
                     await loadData();
-                    showToast('Запись сохранена');
+                    showToast('Сохранено');
                 };
 
                 const deleteItem = async (id) => {
-                    if(!confirm('Удалить запись безвозвратно?')) return;
+                    if(!confirm('Удалить?')) return;
                     await db.logs.delete(id);
                     await loadData();
-                    showToast('Удалено');
                 };
 
-                // Attendance Logic
                 const loadAttendance = async () => {
-                    const date = attendanceDate.value;
-                    const marks = await db.attendance.where('date').equals(date).toArray();
-                    // Reset map
+                    const marks = await db.attendance.where('date').equals(attendanceDate.value).toArray();
                     Object.keys(attendanceMap).forEach(k => delete attendanceMap[k]);
-                    marks.forEach(m => {
-                        if (m.is_present) attendanceMap[m.client_id] = true;
-                    });
+                    marks.forEach(m => { if (m.is_present) attendanceMap[m.client_id] = true; });
                 };
 
-                const toggleAttendance = (clientId) => {
-                    if (attendanceMap[clientId]) delete attendanceMap[clientId];
-                    else attendanceMap[clientId] = true;
-                };
+                const toggleAttendance = (cid) => { if (attendanceMap[cid]) delete attendanceMap[cid]; else attendanceMap[cid] = true; };
 
                 const saveAttendance = async () => {
-                    const date = attendanceDate.value;
-                    const batch = Object.keys(attendanceMap).map(cid => ({
-                        client_id: parseInt(cid),
-                        date: date,
-                        is_present: true
-                    }));
-                    
-                    // Clear existing for this date first (simple approach)
-                    // In real app, we'd upsert carefully. Here we just add/overwrite logic in Dexie if we had unique index on (client, date)
-                    // For simplicity in this demo, we just add. Duplicate handling requires schema change or careful get/put.
-                    // Let's do a clear then add for safety on this specific date view
-                    const existing = await db.attendance.where('date').equals(date).toArray();
+                    const batch = Object.keys(attendanceMap).map(cid => ({ client_id: parseInt(cid), date: attendanceDate.value, is_present: true }));
+                    const existing = await db.attendance.where('date').equals(attendanceDate.value).toArray();
                     await db.attendance.bulkDelete(existing.map(x => x.id));
-                    
                     await db.attendance.bulkAdd(batch);
                     showToast('Посещаемость сохранена');
                     await loadData();
                 };
 
-                // Import Clients
                 const importClientsPrompt = async () => {
-                    const jsonStr = prompt("Вставьте JSON массив клиентов:\n[{\"fio\":\"Иванов И.И.\", \"dob\":\"1950-01-01\"}, ...]");
+                    const jsonStr = prompt("Вставьте JSON массив: [{\"fio\":\"Иванов И.И.\"}, ...]");
                     if (!jsonStr) return;
                     try {
                         const data = JSON.parse(jsonStr);
-                        if (!Array.isArray(data)) throw new Error("Нужен массив");
-                        
-                        const validClients = data.map(c => ({
-                            fio: c.fio || c.name || "Без имени",
-                            dob: c.dob || null,
-                            group: c.group || ""
-                        })).filter(c => c.fio);
-
-                        await db.clients.bulkAdd(validClients);
+                        const valid = data.map(c => ({ fio: c.fio || c.name, dob: c.dob || null, group: c.group || "" })).filter(c => c.fio);
+                        await db.clients.bulkAdd(valid);
                         await loadData();
-                        showToast(`Импортировано ${validClients.length} клиентов`);
-                    } catch (e) {
-                        showToast('Ошибка импорта: ' + e.message, 'error');
-                    }
+                        showToast(`Импортировано ${valid.length}`);
+                    } catch (e) { showToast('Ошибка: ' + e.message, 'error'); }
                 };
 
-                // DOCX Generation (Strict Template Match)
                 const downloadDoc = async (item) => {
-                    const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, HeadingLevel, AlignmentType } = docx;
-                    
+                    const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType } = docx;
                     const client = clients.value.find(c => c.id === item.client_id);
                     const ex = item.extra_fields || {};
 
                     const doc = new Document({
                         sections: [{
-                            properties: {},
                             children: [
-                                // Header
-                                new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: AlignmentType.CENTER, style: "Normal" }),
-                                new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: AlignmentType.CENTER, style: "Normal" }),
+                                new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: AlignmentType.CENTER }),
+                                new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: AlignmentType.CENTER }),
+                                new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+                                new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата:", bold:true})]}), new TableCell({children: [new Paragraph(item.date)]}) ] }),
+                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"ФИО:", bold:true})]}), new TableCell({children: [new Paragraph(client?.fio || "")]}) ] }),
+                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client?.dob || "")]}) ] }),
+                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната:", bold:true})]}), new TableCell({children: [new Paragraph(ex.room || "")]}) ] }),
+                                ]}),
                                 new Paragraph({ text: "", spacing: { after: 200 } }),
-                                new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", alignment: AlignmentType.CENTER, heading: HeadingLevel.HEADING_1, spacing: { after: 300 } }),
-                                
-                                // Main Table
-                                new Table({
-                                    width: { size: 100, type: WidthType.PERCENTAGE },
-                                    rows: [
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата консультации:", bold:true})]}), new TableCell({children: [new Paragraph(item.date)]}) ] }),
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. получателя услуг:", bold:true})]}), new TableCell({children: [new Paragraph(client ? client.fio : "")]}) ] }),
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client && client.dob ? client.dob : "")]}) ] }),
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната / Категория:", bold:true})]}), new TableCell({children: [new Paragraph(ex.room || "")]}) ] }),
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. психолога:", bold:true})]}), new TableCell({children: [new Paragraph("Психолог Интерната")]}) ] }),
-                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Вид консультации:", bold:true})]}), new TableCell({children: [new Paragraph(ex.format || "очно")]}) ] }),
-                                    ]
-                                }),
-
-                                new Paragraph({ text: "", spacing: { after: 300 } }),
-
-                                // Sections
-                                new Paragraph({ text: "1. Запрос ПСУ", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
-                                new Paragraph({ text: ex.request || "", spacing: { after: 200 } }),
-
-                                new Paragraph({ text: "2. Содержание консультационной работы", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
-                                new Paragraph({ text: ex.content || "", spacing: { after: 200 } }),
-
-                                new Paragraph({ text: "3. Результаты консультации", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
-                                new Paragraph({ text: ex.result || "", spacing: { after: 200 } }),
-
-                                new Paragraph({ text: "4. Рекомендации", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
-                                new Paragraph({ text: ex.recommendations || "", spacing: { after: 400 } }),
-
-                                // Signatures
-                                new Table({
-                                    width: { size: 100, type: WidthType.PERCENTAGE },
-                                    rows: [
-                                        new TableRow({ children: [ 
-                                            new TableCell({children: [new Paragraph("Психолог: __________________")] }), 
-                                            new TableCell({children: [new Paragraph("Дата: __________________")] }) 
-                                        ]}),
-                                        new TableRow({ children: [ 
-                                            new TableCell({children: [new Paragraph("Подпись получателя услуг: __________________")] }), 
-                                            new TableCell({children: [new Paragraph("Дата: __________________")] }) 
-                                        ]}),
-                                    ]
-                                })
-                            ]
-                        }]
-                    });
-
-                    const blob = await Packer.toBlob(doc);
-                    saveAs(blob, `Blank_${client ? client.fio.replace(/[^a-zа-я0-9]/gi, '_') : 'Client'}_${item.date}.docx`);
-                    showToast("Бланк скачан");
-                };
-
-                // Yandex Sync
-                const syncToCloud = async () => {
-                    isSyncing.value = true;
-                    try {
-                        const data = {
-                            clients: await db.clients.toArray(),
-                            logs: await db.logs.toArray(),
-                            attendance: await db.attendance.toArray(),
-                            timestamp: new Date().toISOString()
-                        };
-
-                        // Get Upload URL
-                        const uploadRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(YANDEX_PATH)}&overwrite=true`, {
-                            headers: { Authorization: `OAuth ${YANDEX_TOKEN}` }
-                        });
-                        if (!uploadRes.ok) throw new Error("Ошибка доступа к Яндекс.Диску");
-                        const { href } = await uploadRes.json();
-
-                        // Upload Data
-                        const putRes = await fetch(href, {
-                            method: 'PUT',
-                            body: JSON.stringify(data)
-                        });
-                        if (!putRes.ok) throw new Error("Ошибка загрузки файла");
-
-                        showToast("✅ Синхронизация успешна!");
-                    } catch (e) {
-                        console.error(e);
-                        showToast("❌ Ошибка: " + e.message, 'error');
-                    } finally {
-                        isSyncing.value = false;
-                    }
-                };
-
-                const loadFromCloud = async () => {
-                    if (!confirm("ВНИМАНИЕ: Все текущие локальные данные будут заменены данными из облака. Продолжить?")) return;
-                    isSyncing.value = true;
-                    try {
-                        // Get Download URL
-                        const downRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(YANDEX_PATH)}`, {
-                            headers: { Authorization: `OAuth ${YANDEX_TOKEN}` }
-                        });
-                        if (!downRes.ok) throw new Error("Файл не найден в облаке или ошибка доступа");
-                        const { href } = await downRes.json();
-
-                        // Download Data
-                        const getData = await fetch(href);
-                        const data = await getData.json();
-
-                        // Restore to DB
-                        await db.transaction('rw', db.clients, db.logs, db.attendance, async () => {
-                            await db.clients.clear();
-                            await db.logs.clear();
-                            await db.attendance.clear();
-                            
-                            if (data.clients) await db.clients.bulkAdd(data.clients);
-                            if (data.logs) await db.logs.bulkAdd(data.logs);
-                            if (data.attendance) await db.attendance.bulkAdd(data.attendance);
-                        });
-
-                        showToast("✅ Данные загружены! Перезагрузка...");
-                        setTimeout(() => location.reload(), 1500);
-                    } catch (e) {
-                        showToast("❌ Ошибка: " + e.message, 'error');
-                    } finally {
-                        isSyncing.value = false;
-                    }
-                };
-
-                const applyFilters = () => { /* Triggered by reactivity */ };
-                const resetFilters = () => { filters.date = ''; filters.clientId = ''; };
-                const formatDate = (d) => {
-                    if (!d) return '';
-                    const [y, m, day] = d.split('-');
-                    return `${day}.${m}.${y}`;
-                };
-
-                // Init
-                onMounted(loadData);
-                watch(currentTab, () => {
-                    if (currentTab.value === 'attendance') loadAttendance();
-                });
-
-                return {
-                    currentTab, tabs, currentTabName, showModal, isSyncing,
-                    clients, filteredItems, stats, attendanceMap, attendanceDate,
-                    form, newClientFio, filters, toast,
-                    openModal, saveEntry, deleteItem, getClientName, getItemDetails,
-                    toggleAttendance, saveAttendance, loadAttendance,
-                    importClientsPrompt, createQuickClient,
-                    downloadDoc, syncToCloud, loadFromCloud,
-                    applyFilters, resetFilters, formatDate
-                };
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+                                new Paragraph({ text: "1. Запрос", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.request || "" }),
+                                new Paragraph({ text: "2. Содержание", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.content || "" }),
+                                new Paragraph({ text: "3. Результат", heading: Heading
