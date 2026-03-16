@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АРМ Психолога | Южный дом-интернат</title>
     
-    <!-- 1. Загружаем библиотеки -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script> <!-- Версия PROD (быстрее) -->
+    <!-- Библиотеки -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
@@ -14,17 +14,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Стили для загрузки и скрытия до старта Vue */
         body { background-color: #f8fafc; font-family: 'Segoe UI', sans-serif; }
-        
-        /* v-cloak скрывает приложение, пока Vue не загрузится */
         [v-cloak] { display: none !important; }
         
-        /* Экран загрузки (виден, если Vue сломался) */
-        #startup-error {
-            position: fixed; inset: 0; background: #fff; z-index: 9999;
+        /* Экран загрузки */
+        #loader {
+            position: fixed; inset: 0; background: #f8fafc; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 20px; text-align: center; color: #ef4444;
+            transition: opacity 0.5s;
         }
         .spinner {
             width: 40px; height: 40px; border: 4px solid #e2e8f0;
@@ -32,26 +29,35 @@
             animation: spin 1s linear infinite; margin-bottom: 15px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Блок ошибки */
+        #error-box {
+            display: none; position: fixed; inset: 0; background: #fff; z-index: 10000;
+            padding: 20px; text-align: center; color: #dc2626;
+            overflow-y: auto;
+        }
+        #error-box.visible { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- Индикатор загрузки (исчезнет сам, если все ок) -->
-    <div id="loader" style="position:fixed;inset:0;background:#f8fafc;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <!-- Лоадер -->
+    <div id="loader">
         <div class="spinner"></div>
         <div style="color:#64748b;font-weight:600;">Загрузка системы...</div>
+        <div style="margin-top:10px;font-size:0.8rem;color:#94a3b8;">Инициализация базы данных</div>
     </div>
 
-    <!-- Ошибка старта (покажется, если Vue не запустится) -->
-    <div id="startup-error" style="display:none;">
-        <h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:10px;">⚠️ Ошибка запуска приложения</h2>
-        <p id="error-text" style="max-width:600px;line-height:1.5;"></p>
-        <button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">Обновить страницу</button>
+    <!-- Блок ошибок -->
+    <div id="error-box">
+        <h2 style="font-size:1.5rem;font-weight:bold;margin-bottom:10px;">⚠️ Ошибка запуска</h2>
+        <p id="error-msg" style="max-width:600px;line-height:1.5;margin-bottom:20px;white-space:pre-wrap;"></p>
+        <button onclick="location.reload()" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">Обновить страницу</button>
+        <p style="margin-top:20px;font-size:0.8rem;color:#666;">Попробуйте также очистить кэш (Ctrl+F5)</p>
     </div>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+    <!-- Приложение -->
     <div id="app" v-cloak class="flex h-screen overflow-hidden">
-        
         <!-- SIDEBAR -->
         <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20 hidden md:flex">
             <div class="p-6 border-b border-slate-800">
@@ -63,7 +69,6 @@
                     </div>
                 </div>
             </div>
-
             <nav class="flex-1 overflow-y-auto p-4 space-y-1">
                 <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
                     :class="['w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group', 
@@ -72,7 +77,6 @@
                     <span class="font-medium">{{ tab.name }}</span>
                 </button>
             </nav>
-
             <div class="p-4 border-t border-slate-800 space-y-3 bg-slate-900">
                 <button @click="syncToCloud" :disabled="isSyncing" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all">
                     <i class="fas fa-cloud-upload-alt" :class="{'fa-spin': isSyncing}"></i> 
@@ -84,7 +88,7 @@
             </div>
         </aside>
 
-        <!-- MAIN CONTENT -->
+        <!-- MAIN -->
         <main class="flex-1 flex flex-col min-w-0 bg-white">
             <header class="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white sticky top-0 z-10">
                 <h2 class="text-xl font-bold text-slate-800">{{ currentTabName }}</h2>
@@ -99,7 +103,6 @@
             </header>
 
             <div class="flex-1 overflow-auto p-6 bg-slate-50">
-                
                 <!-- DASHBOARD -->
                 <div v-if="currentTab === 'dashboard'" class="max-w-5xl mx-auto space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -108,36 +111,29 @@
                             <div class="text-3xl font-bold text-slate-800">{{ clients.length }}</div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                            <div class="text-slate-500 text-sm font-medium mb-1">Записей в журналах</div>
+                            <div class="text-slate-500 text-sm font-medium mb-1">Записей</div>
                             <div class="text-3xl font-bold text-slate-800">{{ logs.length }}</div>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                             <div class="text-slate-500 text-sm font-medium mb-1">Статус</div>
-                            <div class="text-lg font-bold text-emerald-600 flex items-center gap-2">
-                                <i class="fas fa-check-circle"></i> Готов к работе
-                            </div>
+                            <div class="text-lg font-bold text-emerald-600"><i class="fas fa-check-circle"></i> Онлайн</div>
                         </div>
                     </div>
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-6">
                         <h3 class="font-bold text-blue-900 mb-2"><i class="fas fa-info-circle mr-2"></i>Инструкция</h3>
                         <ul class="space-y-2 text-sm text-blue-800 list-disc list-inside">
                             <li>Данные хранятся в браузере.</li>
-                            <li>Нажми <b>"Сохранить в Облако"</b>, чтобы сделать бэкап на Яндекс.Диск.</li>
+                            <li>Нажми <b>"Сохранить в Облако"</b> для бэкапа на Яндекс.Диск.</li>
                             <li>Файл бэкапа: <code class="bg-white px-1 rounded">/journals_backup.json</code></li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- LISTS (Consultations, Diagnostics, etc.) -->
+                <!-- LISTS -->
                 <div v-else-if="currentTab !== 'attendance'" class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b">
-                            <tr>
-                                <th class="p-4 w-32">Дата</th>
-                                <th class="p-4 w-64">Клиент</th>
-                                <th class="p-4">Детали</th>
-                                <th class="p-4 w-48 text-right">Действия</th>
-                            </tr>
+                            <tr><th class="p-4 w-32">Дата</th><th class="p-4 w-64">Клиент</th><th class="p-4">Детали</th><th class="p-4 w-48 text-right">Действия</th></tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
                             <tr v-for="item in filteredItems" :key="item.id" class="hover:bg-blue-50/50">
@@ -145,17 +141,11 @@
                                 <td class="p-4 font-medium">{{ getClientName(item.client_id) }}</td>
                                 <td class="p-4 text-slate-600 truncate max-w-md">{{ getItemDetails(item) }}</td>
                                 <td class="p-4 text-right space-x-2">
-                                    <button v-if="item.log_type === 'consultation'" @click="downloadDoc(item)" class="text-blue-600 hover:text-blue-800 p-2">
-                                        <i class="fas fa-file-word"></i>
-                                    </button>
-                                    <button @click="deleteItem(item.id)" class="text-red-400 hover:text-red-600 p-2">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <button v-if="item.log_type === 'consultation'" @click="downloadDoc(item)" class="text-blue-600 hover:text-blue-800 p-2"><i class="fas fa-file-word"></i></button>
+                                    <button @click="deleteItem(item.id)" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>
-                            <tr v-if="filteredItems.length === 0">
-                                <td colspan="4" class="p-12 text-center text-slate-400">Записей нет. Нажмите "Добавить", чтобы создать первую.</td>
-                            </tr>
+                            <tr v-if="filteredItems.length === 0"><td colspan="4" class="p-12 text-center text-slate-400">Записей нет</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -171,16 +161,13 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
                         <table class="w-full">
-                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b">
-                                <tr><th class="p-4 text-left">ФИО</th><th class="p-4 text-center">Статус</th></tr>
-                            </thead>
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b"><tr><th class="p-4 text-left">ФИО</th><th class="p-4 text-center">Статус</th></tr></thead>
                             <tbody class="divide-y">
                                 <tr v-for="client in clients" :key="client.id">
                                     <td class="p-4 font-medium">{{ client.fio }}</td>
                                     <td class="p-4 text-center">
                                         <button @click="toggleAttendance(client.id)" 
-                                            :class="['w-10 h-10 rounded-full text-lg font-bold transition-all', 
-                                            attendanceMap[client.id] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300']">
+                                            :class="['w-10 h-10 rounded-full text-lg font-bold transition-all', attendanceMap[client.id] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300']">
                                             {{ attendanceMap[client.id] ? '+' : '' }}
                                         </button>
                                     </td>
@@ -189,11 +176,10 @@
                         </table>
                     </div>
                 </div>
-
             </div>
         </main>
 
-        <!-- MODAL (New Entry) -->
+        <!-- MODAL -->
         <transition name="fade">
             <div v-if="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
@@ -203,30 +189,19 @@
                     </div>
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Дата</label>
-                                <input v-model="form.date" type="date" class="w-full border rounded-lg p-2.5">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Клиент</label>
-                                <select v-model="form.client_id" class="w-full border rounded-lg p-2.5 bg-white">
-                                    <option value="">Выберите...</option>
-                                    <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option>
-                                </select>
-                            </div>
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Дата</label><input v-model="form.date" type="date" class="w-full border rounded-lg p-2.5"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Клиент</label><select v-model="form.client_id" class="w-full border rounded-lg p-2.5 bg-white"><option value="">Выберите...</option><option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option></select></div>
                         </div>
-                        
-                        <!-- Dynamic Fields -->
                         <div v-if="currentTab === 'consultations'">
-                            <input v-model="form.extra.room" placeholder="Комната / Категория" class="w-full border rounded-lg p-2.5 mb-3">
-                            <textarea v-model="form.extra.request" placeholder="Запрос (Жалобы)" rows="2" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
-                            <textarea v-model="form.extra.content" placeholder="Содержание работы" rows="3" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
+                            <input v-model="form.extra.room" placeholder="Комната" class="w-full border rounded-lg p-2.5 mb-3">
+                            <textarea v-model="form.extra.request" placeholder="Запрос" rows="2" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
+                            <textarea v-model="form.extra.content" placeholder="Содержание" rows="3" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
                             <textarea v-model="form.extra.result" placeholder="Результат" rows="2" class="w-full border rounded-lg p-2.5 mb-3"></textarea>
                             <textarea v-model="form.extra.recommendations" placeholder="Рекомендации" rows="2" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
                         <div v-else-if="currentTab === 'diagnostics'">
-                            <input v-model="form.extra.methods" placeholder="Методики (MMSE, HADS...)" class="w-full border rounded-lg p-2.5 mb-3">
-                            <input v-model="form.extra.result" placeholder="Результат (баллы)" class="w-full border rounded-lg p-2.5 mb-3">
+                            <input v-model="form.extra.methods" placeholder="Методики" class="w-full border rounded-lg p-2.5 mb-3">
+                            <input v-model="form.extra.result" placeholder="Баллы" class="w-full border rounded-lg p-2.5 mb-3">
                             <textarea v-model="form.extra.conclusion" placeholder="Заключение" rows="3" class="w-full border rounded-lg p-2.5"></textarea>
                         </div>
                         <div v-else-if="currentTab === 'patronage'">
@@ -246,168 +221,236 @@
             </div>
         </transition>
 
-        <!-- TOAST NOTIFICATION -->
+        <!-- TOAST -->
         <transition name="fade">
-            <div v-if="toast.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white font-medium', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
-                {{ toast.message }}
-            </div>
+            <div v-if="toast.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white font-medium', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">{{ toast.message }}</div>
         </transition>
     </div>
 
     <script>
-        // Проверка наличия библиотек перед стартом
-        if (typeof Vue === 'undefined' || typeof Dexie === 'undefined') {
+        // Глобальная обработка ошибок
+        window.onerror = function(msg, url, line) {
+            showError("Критическая ошибка JS: " + msg + " (строка " + line + ")");
+            return true;
+        };
+
+        function showError(msg) {
             document.getElementById('loader').style.display = 'none';
-            const errDiv = document.getElementById('startup-error');
-            errDiv.style.display = 'flex';
-            document.getElementById('error-text').innerText = "Не удалось загрузить библиотеки Vue или Dexie. Проверьте интернет-соединение.";
-            throw new Error("Libraries missing");
+            const box = document.getElementById('error-box');
+            box.classList.add('visible');
+            document.getElementById('error-msg').innerText = msg;
+            console.error(msg);
         }
 
-        // Инициализация БД
-        const db = new Dexie("PsychologistARM_DB");
-        db.version(1).stores({
-            clients: '++id, fio',
-            logs: '++id, log_type, client_id, date',
-            attendance: '++id, client_id, date'
-        });
+        try {
+            if (typeof Vue === 'undefined') throw new Error("Библиотека Vue не загрузилась. Проверьте интернет.");
+            if (typeof Dexie === 'undefined') throw new Error("Библиотека Dexie не загрузилась.");
 
-        const app = Vue.createApp({
-            setup() {
-                const currentTab = ref('dashboard');
-                const showModal = ref(false);
-                const isSyncing = ref(false);
-                const clients = ref([]);
-                const logs = ref([]);
-                const attendanceMap = reactive({});
-                const attendanceDate = ref(new Date().toISOString().split('T')[0]);
-                const form = reactive({ date: new Date().toISOString().split('T')[0], client_id: '', extra: {} });
-                const toast = reactive({ show: false, message: '', type: 'success' });
-                
-                // КОНФИГУРАЦИЯ
-                const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g";
-                const YANDEX_PATH = "/journals_backup.json";
+            // Инициализация БД
+            const db = new Dexie("PsychologistARM_DB");
+            db.version(1).stores({
+                clients: '++id, fio',
+                logs: '++id, log_type, client_id, date',
+                attendance: '++id, client_id, date'
+            });
 
-                const tabs = [
-                    { id: 'dashboard', name: 'Главная', icon: 'fas fa-home' },
-                    { id: 'clients', name: 'Клиенты', icon: 'fas fa-users' },
-                    { id: 'consultations', name: 'Консультации', icon: 'fas fa-comments' },
-                    { id: 'diagnostics', name: 'Диагностика', icon: 'fas fa-clipboard-list' },
-                    { id: 'patronage', name: 'Патронаж', icon: 'fas fa-house-user' },
-                    { id: 'correction', name: 'Коррекция', icon: 'fas fa-brain' },
-                    { id: 'attendance', name: 'Посещаемость', icon: 'fas fa-calendar-check' }
-                ];
+            // Тест открытия БД
+            db.open().catch(function(e) {
+                showError("Не удалось открыть базу данных IndexedDB:\n" + e.message + "\n\nВозможно, браузер блокирует хранилище (режим инкогнито, старые версии Safari/Chrome).");
+            });
 
-                const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name);
-                
-                const filteredItems = computed(() => {
-                    if (['clients', 'attendance', 'dashboard'].includes(currentTab.value)) return [];
-                    let typeMap = { 'consultations': 'consultation', 'diagnostics': ['diagnostics', /test_/], 'patronage': 'patronage', 'correction': 'correction' };
-                    let targetType = typeMap[currentTab.value];
+            const app = Vue.createApp({
+                setup() {
+                    const currentTab = ref('dashboard');
+                    const showModal = ref(false);
+                    const isSyncing = ref(false);
+                    const clients = ref([]);
+                    const logs = ref([]);
+                    const attendanceMap = reactive({});
+                    const attendanceDate = ref(new Date().toISOString().split('T')[0]);
+                    const form = reactive({ date: new Date().toISOString().split('T')[0], client_id: '', extra: {} });
+                    const toast = reactive({ show: false, message: '', type: 'success' });
                     
-                    return logs.value.filter(item => {
-                        let match = Array.isArray(targetType) ? targetType.some(t => typeof t === 'string' ? item.log_type === t : item.log_type.match(t)) : item.log_type === targetType;
-                        return match;
-                    }).sort((a, b) => new Date(b.date) - new Date(a.date));
-                });
+                    const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g";
+                    const YANDEX_PATH = "/journals_backup.json";
 
-                const loadData = async () => {
-                    try {
-                        clients.value = await db.clients.orderBy('fio').toArray();
-                        logs.value = await db.logs.orderBy('date').reverse().toArray();
-                        if (currentTab.value === 'attendance') loadAttendance();
-                    } catch (e) {
-                        console.error("DB Error:", e);
-                        showToast("Ошибка базы данных: " + e.message, 'error');
-                    }
-                };
+                    const tabs = [
+                        { id: 'dashboard', name: 'Главная', icon: 'fas fa-home' },
+                        { id: 'clients', name: 'Клиенты', icon: 'fas fa-users' },
+                        { id: 'consultations', name: 'Консультации', icon: 'fas fa-comments' },
+                        { id: 'diagnostics', name: 'Диагностика', icon: 'fas fa-clipboard-list' },
+                        { id: 'patronage', name: 'Патронаж', icon: 'fas fa-house-user' },
+                        { id: 'correction', name: 'Коррекция', icon: 'fas fa-brain' },
+                        { id: 'attendance', name: 'Посещаемость', icon: 'fas fa-calendar-check' }
+                    ];
 
-                const getClientName = (id) => clients.value.find(c => c.id === id)?.fio || 'Неизвестно';
-                const getItemDetails = (item) => {
-                    const ex = item.extra_fields || {};
-                    if (item.log_type === 'consultation') return ex.request || ex.content;
-                    if (item.log_type.startsWith('test_') || item.log_type === 'diagnostics') return `${ex.methods}: ${ex.result}`;
-                    return ex.observations || ex.process || '';
-                };
-
-                const openModal = () => {
-                    if (clients.value.length === 0) return showToast('Сначала добавьте клиентов!', 'error');
-                    form.date = new Date().toISOString().split('T')[0];
-                    form.client_id = '';
-                    form.extra = {};
-                    showModal.value = true;
-                };
-
-                const saveEntry = async () => {
-                    if (!form.client_id) return;
-                    let logType = currentTab.value === 'consultations' ? 'consultation' : currentTab.value === 'diagnostics' ? 'diagnostics' : currentTab.value === 'patronage' ? 'patronage' : 'correction';
-                    let details = logType === 'consultation' ? form.extra.request : (logType === 'diagnostics' ? `${form.extra.methods}: ${form.extra.result}` : form.extra.observations || form.extra.process);
-
-                    await db.logs.add({ log_type: logType, client_id: parseInt(form.client_id), date: form.date, extra_fields: { ...form.extra }, details });
+                    const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name);
                     
-                    // Авто-посещаемость
-                    try {
-                        await db.attendance.put({ client_id: parseInt(form.client_id), date: form.date, is_present: true }, `[${parseInt(form.client_id)},${form.date}]`);
-                    } catch(e) { console.warn("Attendance sync warning", e); }
+                    const filteredItems = computed(() => {
+                        if (['clients', 'attendance', 'dashboard'].includes(currentTab.value)) return [];
+                        let typeMap = { 'consultations': 'consultation', 'diagnostics': ['diagnostics', /test_/], 'patronage': 'patronage', 'correction': 'correction' };
+                        let targetType = typeMap[currentTab.value];
+                        return logs.value.filter(item => {
+                            let match = Array.isArray(targetType) ? targetType.some(t => typeof t === 'string' ? item.log_type === t : item.log_type.match(t)) : item.log_type === targetType;
+                            return match;
+                        }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                    });
 
-                    showModal.value = false;
-                    await loadData();
-                    showToast('Сохранено');
-                };
+                    const loadData = async () => {
+                        try {
+                            clients.value = await db.clients.orderBy('fio').toArray();
+                            logs.value = await db.logs.orderBy('date').reverse().toArray();
+                            if (currentTab.value === 'attendance') loadAttendance();
+                        } catch (e) {
+                            showError("Ошибка чтения данных: " + e.message);
+                        }
+                    };
 
-                const deleteItem = async (id) => {
-                    if(!confirm('Удалить?')) return;
-                    await db.logs.delete(id);
-                    await loadData();
-                };
+                    const getClientName = (id) => clients.value.find(c => c.id === id)?.fio || 'Неизвестно';
+                    const getItemDetails = (item) => {
+                        const ex = item.extra_fields || {};
+                        if (item.log_type === 'consultation') return ex.request || ex.content;
+                        if (item.log_type.startsWith('test_') || item.log_type === 'diagnostics') return `${ex.methods}: ${ex.result}`;
+                        return ex.observations || ex.process || '';
+                    };
 
-                const loadAttendance = async () => {
-                    const marks = await db.attendance.where('date').equals(attendanceDate.value).toArray();
-                    Object.keys(attendanceMap).forEach(k => delete attendanceMap[k]);
-                    marks.forEach(m => { if (m.is_present) attendanceMap[m.client_id] = true; });
-                };
+                    const openModal = () => {
+                        if (clients.value.length === 0) return showToast('Сначала добавьте клиентов!', 'error');
+                        form.date = new Date().toISOString().split('T')[0];
+                        form.client_id = '';
+                        form.extra = {};
+                        showModal.value = true;
+                    };
 
-                const toggleAttendance = (cid) => { if (attendanceMap[cid]) delete attendanceMap[cid]; else attendanceMap[cid] = true; };
+                    const saveEntry = async () => {
+                        if (!form.client_id) return;
+                        let logType = currentTab.value === 'consultations' ? 'consultation' : currentTab.value === 'diagnostics' ? 'diagnostics' : currentTab.value === 'patronage' ? 'patronage' : 'correction';
+                        let details = logType === 'consultation' ? form.extra.request : (logType === 'diagnostics' ? `${form.extra.methods}: ${form.extra.result}` : form.extra.observations || form.extra.process);
 
-                const saveAttendance = async () => {
-                    const batch = Object.keys(attendanceMap).map(cid => ({ client_id: parseInt(cid), date: attendanceDate.value, is_present: true }));
-                    const existing = await db.attendance.where('date').equals(attendanceDate.value).toArray();
-                    await db.attendance.bulkDelete(existing.map(x => x.id));
-                    await db.attendance.bulkAdd(batch);
-                    showToast('Посещаемость сохранена');
-                    await loadData();
-                };
+                        await db.logs.add({ log_type: logType, client_id: parseInt(form.client_id), date: form.date, extra_fields: { ...form.extra }, details });
+                        
+                        try {
+                            await db.attendance.put({ client_id: parseInt(form.client_id), date: form.date, is_present: true }, `[${parseInt(form.client_id)},${form.date}]`);
+                        } catch(e) { console.warn(e); }
 
-                const importClientsPrompt = async () => {
-                    const jsonStr = prompt("Вставьте JSON массив: [{\"fio\":\"Иванов И.И.\"}, ...]");
-                    if (!jsonStr) return;
-                    try {
-                        const data = JSON.parse(jsonStr);
-                        const valid = data.map(c => ({ fio: c.fio || c.name, dob: c.dob || null, group: c.group || "" })).filter(c => c.fio);
-                        await db.clients.bulkAdd(valid);
+                        showModal.value = false;
                         await loadData();
-                        showToast(`Импортировано ${valid.length}`);
-                    } catch (e) { showToast('Ошибка: ' + e.message, 'error'); }
-                };
+                        showToast('Сохранено');
+                    };
 
-                const downloadDoc = async (item) => {
-                    const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType } = docx;
-                    const client = clients.value.find(c => c.id === item.client_id);
-                    const ex = item.extra_fields || {};
+                    const deleteItem = async (id) => {
+                        if(!confirm('Удалить?')) return;
+                        await db.logs.delete(id);
+                        await loadData();
+                    };
 
-                    const doc = new Document({
-                        sections: [{
-                            children: [
-                                new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: AlignmentType.CENTER }),
-                                new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: AlignmentType.CENTER }),
-                                new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
-                                new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
-                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата:", bold:true})]}), new TableCell({children: [new Paragraph(item.date)]}) ] }),
-                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"ФИО:", bold:true})]}), new TableCell({children: [new Paragraph(client?.fio || "")]}) ] }),
-                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client?.dob || "")]}) ] }),
-                                    new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната:", bold:true})]}), new TableCell({children: [new Paragraph(ex.room || "")]}) ] }),
-                                ]}),
-                                new Paragraph({ text: "", spacing: { after: 200 } }),
-                                new Paragraph({ text: "1. Запрос", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.request || "" }),
-                                new Paragraph({ text: "2. Содержание", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.content || "" }),
-                                new Paragraph({ text: "3. Результат", heading: Heading
+                    const loadAttendance = async () => {
+                        const marks = await db.attendance.where('date').equals(attendanceDate.value).toArray();
+                        Object.keys(attendanceMap).forEach(k => delete attendanceMap[k]);
+                        marks.forEach(m => { if (m.is_present) attendanceMap[m.client_id] = true; });
+                    };
+
+                    const toggleAttendance = (cid) => { if (attendanceMap[cid]) delete attendanceMap[cid]; else attendanceMap[cid] = true; };
+
+                    const saveAttendance = async () => {
+                        const batch = Object.keys(attendanceMap).map(cid => ({ client_id: parseInt(cid), date: attendanceDate.value, is_present: true }));
+                        const existing = await db.attendance.where('date').equals(attendanceDate.value).toArray();
+                        await db.attendance.bulkDelete(existing.map(x => x.id));
+                        await db.attendance.bulkAdd(batch);
+                        showToast('Посещаемость сохранена');
+                        await loadData();
+                    };
+
+                    const importClientsPrompt = async () => {
+                        const jsonStr = prompt("Вставьте JSON массив: [{\"fio\":\"Иванов И.И.\"}, ...]");
+                        if (!jsonStr) return;
+                        try {
+                            const data = JSON.parse(jsonStr);
+                            const valid = data.map(c => ({ fio: c.fio || c.name, dob: c.dob || null, group: c.group || "" })).filter(c => c.fio);
+                            await db.clients.bulkAdd(valid);
+                            await loadData();
+                            showToast(`Импортировано ${valid.length}`);
+                        } catch (e) { showToast('Ошибка: ' + e.message, 'error'); }
+                    };
+
+                    const downloadDoc = async (item) => {
+                        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType } = docx;
+                        const client = clients.value.find(c => c.id === item.client_id);
+                        const ex = item.extra_fields || {};
+                        const doc = new Document({
+                            sections: [{
+                                children: [
+                                    new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: AlignmentType.CENTER }),
+                                    new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: AlignmentType.CENTER }),
+                                    new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+                                    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата:", bold:true})]}), new TableCell({children: [new Paragraph(item.date)]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"ФИО:", bold:true})]}), new TableCell({children: [new Paragraph(client?.fio || "")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client?.dob || "")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната:", bold:true})]}), new TableCell({children: [new Paragraph(ex.room || "")]}) ] }),
+                                    ]}),
+                                    new Paragraph({ text: "", spacing: { after: 200 } }),
+                                    new Paragraph({ text: "1. Запрос", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.request || "" }),
+                                    new Paragraph({ text: "2. Содержание", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.content || "" }),
+                                    new Paragraph({ text: "3. Результат", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.result || "" }),
+                                    new Paragraph({ text: "4. Рекомендации", heading: HeadingLevel.HEADING_2 }), new Paragraph({ text: ex.recommendations || "" }),
+                                ]
+                            }]
+                        });
+                        const blob = await Packer.toBlob(doc);
+                        saveAs(blob, `Blank_${client?.fio || 'Client'}.docx`);
+                    };
+
+                    const syncToCloud = async () => {
+                        isSyncing.value = true;
+                        try {
+                            const data = { clients: await db.clients.toArray(), logs: await db.logs.toArray(), attendance: await db.attendance.toArray() };
+                            const uploadRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(YANDEX_PATH)}&overwrite=true`, { headers: { Authorization: `OAuth ${YANDEX_TOKEN}` } });
+                            if (!uploadRes.ok) throw new Error("Ошибка доступа");
+                            const { href } = await uploadRes.json();
+                            await fetch(href, { method: 'PUT', body: JSON.stringify(data) });
+                            showToast("✅ Синхронизация успешна!");
+                        } catch (e) { showToast("❌ Ошибка: " + e.message, 'error'); }
+                        finally { isSyncing.value = false; }
+                    };
+
+                    const loadFromCloud = async () => {
+                        if (!confirm("Заменить локальные данные данными из облака?")) return;
+                        isSyncing.value = true;
+                        try {
+                            const downRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(YANDEX_PATH)}`, { headers: { Authorization: `OAuth ${YANDEX_TOKEN}` } });
+                            if (!downRes.ok) throw new Error("Файл не найден");
+                            const { href } = await downRes.json();
+                            const data = await (await fetch(href)).json();
+                            await db.transaction('rw', db.clients, db.logs, db.attendance, async () => {
+                                await db.clients.clear(); await db.logs.clear(); await db.attendance.clear();
+                                if (data.clients) await db.clients.bulkAdd(data.clients);
+                                if (data.logs) await db.logs.bulkAdd(data.logs);
+                                if (data.attendance) await db.attendance.bulkAdd(data.attendance);
+                            });
+                            showToast("✅ Загружено! Перезагрузка...");
+                            setTimeout(() => location.reload(), 1000);
+                        } catch (e) { showToast("❌ Ошибка: " + e.message, 'error'); }
+                        finally { isSyncing.value = false; }
+                    };
+
+                    const showToast = (msg, type='success') => { toast.message = msg; toast.type = type; toast.show = true; setTimeout(() => toast.show = false, 3000); };
+                    const formatDate = (d) => d ? d.split('-').reverse().join('.') : '';
+
+                    onMounted(async () => {
+                        await loadData();
+                        document.getElementById('loader').style.opacity = '0';
+                        setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 500);
+                    });
+
+                    return { currentTab, tabs, currentTabName, showModal, isSyncing, clients, logs, filteredItems, attendanceMap, attendanceDate, form, toast, openModal, saveEntry, deleteItem, getClientName, getItemDetails, toggleAttendance, saveAttendance, loadAttendance, importClientsPrompt, downloadDoc, syncToCloud, loadFromCloud, formatDate };
+                }
+            });
+
+            app.mount('#app');
+        } catch (e) {
+            showError("Ошибка инициализации приложения:\n" + e.message + "\n\nПроверьте консоль (F12) для деталей.");
+        }
+    </script>
+</body>
+</html>
