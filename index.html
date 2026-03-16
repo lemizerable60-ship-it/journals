@@ -4,941 +4,740 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АРМ Психолога | Южный дом-интернат</title>
-    <!-- Библиотеки -->
-    <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Dexie.js (IndexedDB wrapper) -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Docx.js -->
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <!-- FileSaver -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
-        :root {
-            --primary-blue: #4A90E2;
-            --bg-color: #F5F7FA;
-            --card-white: #FFFFFF;
-            --text-dark: #2C3E50;
-            --text-light: #7F8C8D;
-            --btn-red: #E74C3C;
-            --btn-green: #2ECC71;
-            --btn-blue: #4A90E2;
-            --btn-orange: #F39C12;
-            --shadow: 0 2px 10px rgba(0,0,0,0.08);
-            --radius: 8px;
-        }
-
-        * { box-sizing: border-box; outline: none; }
-        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; line-height: 1.6; }
-
-        /* HEADER */
-        header { background-color: var(--primary-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .header-title { font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-        .settings-icon { cursor: pointer; font-size: 1.2rem; opacity: 0.8; transition: 0.2s; }
-        .settings-icon:hover { opacity: 1; transform: rotate(30deg); }
-
-        /* NAV */
-        nav { display: flex; justify-content: center; gap: 8px; padding: 10px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-wrap: wrap; position: sticky; top: 60px; z-index: 99; }
-        nav button { padding: 8px 16px; border: 2px solid transparent; background: transparent; color: var(--text-light); cursor: pointer; border-radius: var(--radius); font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
-        nav button:hover { background: #f0f4f8; color: var(--primary-blue); }
-        nav button.active { background: var(--primary-blue); color: white; box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3); }
-
-        /* MAIN */
-        main { padding: 20px; max-width: 800px; margin: 0 auto; padding-bottom: 80px; }
-        .section { display: none; animation: fadeIn 0.3s ease; }
-        .section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* CARDS & BUTTONS */
-        .menu-card { background: var(--card-white); border-radius: var(--radius); padding: 25px; box-shadow: var(--shadow); text-align: center; }
-        .stats-box { background: #f8f9fa; padding: 15px; border-radius: var(--radius); margin-bottom: 20px; text-align: left; border-left: 4px solid var(--primary-blue); }
-        .stats-box strong { color: var(--primary-blue); }
-        
-        .big-btn { display: block; width: 100%; padding: 15px; margin-bottom: 12px; border: none; border-radius: var(--radius); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; text-align: center; }
-        .big-btn:active { transform: scale(0.98); }
-        .big-btn:hover { opacity: 0.9; }
-        .btn-red { background-color: var(--btn-red); }
-        .btn-green { background-color: var(--btn-green); }
-        .btn-blue { background-color: var(--btn-blue); }
-        .btn-orange { background-color: var(--btn-orange); }
-        .btn-outline { background: transparent; border: 2px solid var(--btn-blue); color: var(--btn-blue); }
-        .btn-outline:hover { background: var(--btn-blue); color: white; }
-        .btn-finish { background: #c0392b; margin-top: 20px; box-shadow: 0 4px 6px rgba(192, 57, 43, 0.3); }
-
-        /* FORMS */
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-dark); font-size: 0.95rem; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: var(--radius); font-size: 1rem; background: white; transition: border 0.2s; }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1); }
-        .row { display: flex; gap: 15px; }
-        .col { flex: 1; }
-
-        /* LISTS & TABLES */
-        .list-container { display: flex; flex-direction: column; gap: 15px; }
-        .entry-card { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); position: relative; border-left: 4px solid var(--primary-blue); }
-        .entry-card.diag { border-left-color: var(--btn-orange); }
-        .entry-card.patron { border-left-color: var(--btn-green); }
-        
-        .entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .entry-date { font-size: 0.85rem; color: var(--text-light); font-weight: 600; }
-        .entry-client { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); }
-        .entry-type { font-size: 0.75rem; text-transform: uppercase; color: white; background: var(--primary-blue); padding: 2px 8px; border-radius: 4px; }
-        .entry-content { margin-top: 10px; white-space: pre-wrap; font-size: 0.95rem; color: #444; }
-        .entry-actions { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
-        .icon-btn { background: none; border: none; cursor: pointer; color: var(--text-light); padding: 5px; font-size: 1rem; transition: 0.2s; }
-        .icon-btn:hover { color: var(--btn-red); transform: scale(1.1); }
-        .icon-btn.print:hover { color: var(--primary-blue); }
-
-        /* ATTENDANCE TABLE */
-        .attendance-table { width: 100%; border-collapse: collapse; background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-        .attendance-table th, .attendance-table td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
-        .attendance-table th { background: var(--primary-blue); color: white; font-weight: 600; }
-        .attendance-table tr:hover { background: #f9f9f9; }
-        .check-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ddd; background: white; cursor: pointer; font-weight: bold; color: #ddd; transition: 0.2s; }
-        .check-btn.present { background: var(--btn-green); border-color: var(--btn-green); color: white; }
-
-        /* TOAST & STATUS */
-        #sync-status-bar { background: #fff3cd; color: #856404; padding: 10px; text-align: center; font-size: 0.9rem; border-bottom: 1px solid #ffeeba; }
-        #toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 24px; border-radius: var(--radius); transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        #toast.show { transform: translateY(0); }
-        #toast.success { border-left: 5px solid var(--btn-green); }
-        #toast.error { border-left: 5px solid var(--btn-red); }
-        .timer-display { font-size: 0.8rem; color: var(--text-light); margin-top: 10px; text-align: center; }
-        
-        .settings-panel { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-top: 20px; display: none; border: 1px solid #eee; }
-        .settings-panel.open { display: block; }
-
-        @media (max-width: 600px) {
-            .row { flex-direction: column; gap: 0; }
-            nav { top: 50px; }
-            .header-title span { display: none; }
-        }
+        [v-cloak] { display: none; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
     </style>
 </head>
-<body>
-
-<header>
-    <div class="header-title"><i class="fas fa-user-md"></i> <span>АРМ Психолога</span></div>
-    <div class="settings-icon" onclick="toggleSettings()"><i class="fas fa-cog"></i></div>
-</header>
-
-<div id="sync-status-bar"><i class="fas fa-cloud"></i> Ожидание синхронизации...</div>
-
-<nav>
-    <button onclick="showSection('dashboard')" class="active"><i class="fas fa-home"></i> Главная</button>
-    <button onclick="showSection('clients')"><i class="fas fa-users"></i> Клиенты</button>
-    <button onclick="showSection('journal')"><i class="fas fa-pen-fancy"></i> Журнал</button>
-    <button onclick="showSection('attendance')"><i class="fas fa-calendar-check"></i> Посещаемость</button>
-    <button onclick="showSection('reports')"><i class="fas fa-file-word"></i> Бланки</button>
-</nav>
-
-<main>
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="section active">
-        <div class="menu-card">
-            <h2 style="margin-top:0;">Управление данными</h2>
-            <div class="stats-box">
-                <i class="fas fa-chart-pie"></i> <strong>Статистика:</strong><br>
-                Клиентов: <span id="stat-clients">0</span> | Записей в журналах: <span id="stat-logs">0</span>
-            </div>
-
-            <button class="big-btn btn-red" onclick="downloadFromYandex()">
-                <i class="fas fa-download"></i> СКАЧАТЬ БЭКАП (Яндекс)
-            </button>
-            <button class="big-btn btn-green" onclick="uploadToYandex()">
-                <i class="fas fa-upload"></i> ЗАГРУЗИТЬ БЭКАП (Яндекс)
-            </button>
-            
-            <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
-            
-            <button class="big-btn btn-blue" onclick="showSection('journal')">
-                <i class="fas fa-plus-circle"></i> Новая запись в журнал
-            </button>
-            <button class="big-btn btn-orange" onclick="showSection('attendance')">
-                <i class="fas fa-check-square"></i> Отметить посещаемость
-            </button>
-            <button class="big-btn btn-outline" onclick="showSection('clients')">
-                <i class="fas fa-user-plus"></i> Управление клиентами
-            </button>
-
-            <button class="big-btn btn-finish" onclick="finishShift()">
-                <i class="fas fa-power-off"></i> ЗАВЕРШИТЬ СМЕНУ И СИНХРОНИЗИРОВАТЬ
-            </button>
-            <div class="timer-display" id="timer-display">До автосохранения: 6ч 00м</div>
-        </div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div id="settings-panel" class="settings-panel">
-        <h3><i class="fas fa-cog"></i> Настройки Яндекс.Диска</h3>
-        <div class="form-group">
-            <label>OAuth Token</label>
-            <input type="password" id="ya-token" placeholder="Вставьте токен доступа">
-            <small style="color:#666">Токен сохраняется в браузере.</small>
-        </div>
-        <div class="form-group">
-            <label>Путь к файлу бэкапа</label>
-            <input type="text" id="ya-path" value="/journals_backup.json">
-        </div>
-        <button class="big-btn btn-blue" onclick="saveSettingsAndClose()">Сохранить настройки</button>
-    </div>
-
-    <!-- CLIENTS -->
-    <div id="clients" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-users"></i> Клиенты</h2>
-        <div class="form-group">
-            <label>Импорт клиентов (JSON)</label>
-            <textarea id="importData" rows="3" placeholder='[{"fio":"Иванов И.И.", "dob":"1950-01-01", "group":"Группа 1"}]'></textarea>
-            <button class="big-btn btn-blue" style="margin-top:10px;" onclick="importClients()">Импортировать список</button>
-        </div>
-        <div class="form-group">
-            <input type="text" id="searchClient" placeholder="Поиск по ФИО..." onkeyup="renderClients()">
-        </div>
-        <div id="clientsList" class="list-container"></div>
-    </div>
-
-    <!-- JOURNAL ENTRY -->
-    <div id="journal" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-pen-fancy"></i> Запись в журнал</h2>
+<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden" v-cloak>
+    <div id="app" class="flex h-full">
         
-        <div class="form-group">
-            <label>Тип журнала</label>
-            <select id="logType" onchange="toggleLogFields()">
-                <option value="consultation">Консультация</option>
-                <option value="diagnostics">Диагностика</option>
-                <option value="patronage">Патронаж</option>
-                <option value="correction">Коррекционное занятие</option>
-            </select>
-        </div>
-
-        <div class="row form-group">
-            <div class="col">
-                <label>Дата</label>
-                <input type="date" id="logDate">
-            </div>
-            <div class="col">
-                <label>Клиент</label>
-                <select id="logClient"></select>
-            </div>
-        </div>
-
-        <!-- Поля для Консультации -->
-        <div id="fields-consultation" class="log-fields">
-            <div class="form-group">
-                <label>Комната / Категория</label>
-                <input type="text" id="consRoom" placeholder="Напр. 105, Группа А">
-            </div>
-            <div class="form-group">
-                <label>Запрос ПСУ (Жалобы)</label>
-                <textarea id="consRequest" rows="3" placeholder="С чем обратился..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Содержание работы</label>
-                <textarea id="consContent" rows="4" placeholder="Что делали..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Результат</label>
-                <textarea id="consResult" rows="2" placeholder="Динамика, состояние..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Рекомендации</label>
-                <textarea id="consRec" rows="2" placeholder="Что делать дальше..."></textarea>
-            </div>
-        </div>
-
-        <!-- Поля для Диагностики -->
-        <div id="fields-diagnostics" class="log-fields" style="display:none;">
-            <div class="form-group">
-                <label>Методики</label>
-                <input type="text" id="diagMethods" placeholder="Напр. MMSE, HADS">
-            </div>
-            <div class="form-group">
-                <label>Результат (баллы)</label>
-                <input type="text" id="diagResult" placeholder="Напр. 24 балла">
-            </div>
-            <div class="form-group">
-                <label>Заключение</label>
-                <textarea id="diagConclusion" rows="3" placeholder="Интерпретация..."></textarea>
-            </div>
-        </div>
-
-        <!-- Поля для Патронажа -->
-        <div id="fields-patronage" class="log-fields" style="display:none;">
-            <div class="form-group">
-                <label>Место/Условия</label>
-                <input type="text" id="patrPlace" placeholder="Напр. Палата 105">
-            </div>
-            <div class="form-group">
-                <label>Цель</label>
-                <input type="text" id="patrGoal" placeholder="Напр. Оценка состояния">
-            </div>
-            <div class="form-group">
-                <label>Наблюдения</label>
-                <textarea id="patrObs" rows="4" placeholder="Что увидели..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Рекомендации</label>
-                <textarea id="patrRec" rows="2"></textarea>
-            </div>
-        </div>
-
-        <!-- Поля для Коррекции -->
-        <div id="fields-correction" class="log-fields" style="display:none;">
-            <div class="form-group">
-                <label>Программа/Направление</label>
-                <input type="text" id="corrProgram" placeholder="Напр. Когнитивная тренировка">
-            </div>
-            <div class="form-group">
-                <label>Упражнения/Ход занятия</label>
-                <textarea id="corrProcess" rows="4" placeholder="Описание упражнений..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Динамика/Заметки</label>
-                <textarea id="corrNotes" rows="2"></textarea>
-            </div>
-        </div>
-
-        <button class="big-btn btn-green" onclick="saveLog()">
-            <i class="fas fa-save"></i> Сохранить запись
-        </button>
-
-        <h3 style="margin-top:30px; color: var(--text-light);">Последние записи</h3>
-        <div id="logHistory" class="list-container"></div>
-    </div>
-
-    <!-- ATTENDANCE -->
-    <div id="attendance" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-calendar-check"></i> Посещаемость</h2>
-        <div class="form-group row">
-            <div class="col">
-                <label>Выберите дату</label>
-                <input type="date" id="attDate" onchange="loadAttendance()">
-            </div>
-            <div class="col" style="display:flex; align-items:flex-end;">
-                <button class="big-btn btn-blue" onclick="loadAttendance()" style="margin:0;">Обновить</button>
-            </div>
-        </div>
-        <div style="overflow-x:auto;">
-            <table class="attendance-table">
-                <thead>
-                    <tr>
-                        <th style="text-align:left;">ФИО Клиента</th>
-                        <th>Отметка</th>
-                    </tr>
-                </thead>
-                <tbody id="attList"></tbody>
-            </table>
-        </div>
-        <button class="big-btn btn-green" style="margin-top:20px;" onclick="saveAttendance()">
-            <i class="fas fa-save"></i> Сохранить отметки
-        </button>
-    </div>
-
-    <!-- REPORTS / BLANKS -->
-    <div id="reports" class="section">
-        <h2 style="color: var(--text-dark);"><i class="fas fa-file-word"></i> Бланки консультаций</h2>
-        <p style="color:#666;">Выберите запись из журнала консультаций, чтобы сгенерировать официальный бланк DOCX.</p>
-        
-        <div class="form-group">
-            <label>Фильтр по клиенту (опционально)</label>
-            <select id="reportClientFilter" onchange="renderReportsList()">
-                <option value="all">Все клиенты</option>
-            </select>
-        </div>
-
-        <div id="reportsList" class="list-container"></div>
-    </div>
-</main>
-
-<div id="toast"></div>
-
-<script>
-    // --- КОНФИГУРАЦИЯ ---
-    const DB_NAME = 'psych_journals_pwa';
-    const INACTIVITY_LIMIT = 6 * 60 * 60 * 1000; // 6 часов
-    
-    // !!! ТОКЕН ВСТАВЛЕН АВТОМАТИЧЕСКИ !!!
-    const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g"; 
-    
-    let db = new PouchDB(DB_NAME);
-    let inactivityTimer;
-    let lastActivityTime = Date.now();
-
-    // Индексы
-    db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
-    db.createIndex({ index: { fields: ['fio'] } });
-
-    // --- ТАЙМЕР И АВТОСОХРАНЕНИЕ ---
-    function resetInactivityTimer() {
-        clearTimeout(inactivityTimer);
-        lastActivityTime = Date.now();
-        updateTimerDisplay();
-        inactivityTimer = setTimeout(() => {
-            showToast("⏰ 6 часов бездействия. Автосохранение...", "info");
-            uploadToYandex(true);
-        }, INACTIVITY_LIMIT);
-    }
-
-    function updateTimerDisplay() {
-        const now = Date.now();
-        const diff = INACTIVITY_LIMIT - (now - lastActivityTime);
-        if (diff <= 0) return;
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        document.getElementById('timer-display').innerText = `До автосохранения: ${h}ч ${m}м`;
-    }
-
-    setInterval(updateTimerDisplay, 60000);
-    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
-        document.addEventListener(evt, resetInactivityTimer, true);
-    });
-
-    // --- ИНИЦИАЛИЗАЦИЯ ---
-    window.addEventListener('load', async () => {
-        // Проверка токена
-        const savedToken = localStorage.getItem('ya_token') || YANDEX_TOKEN;
-        const savedPath = localStorage.getItem('ya_path');
-        
-        if(savedToken && savedToken !== "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ЯНДЕКСА") {
-            document.getElementById('ya-token').value = savedToken;
-            if(savedPath) document.getElementById('ya-path').value = savedPath;
-
-            updateStatus("Токен найден. Автозагрузка...", "info");
-            await downloadFromYandex();
-        } else {
-            updateStatus("Настройте токен в разделе настроек (шестеренка)", "warning");
-        }
-
-        // Установка сегодняшней даты
-        document.getElementById('logDate').valueAsDate = new Date();
-        document.getElementById('attDate').valueAsDate = new Date();
-        
-        resetInactivityTimer();
-        await updateStats();
-        await renderClients();
-        await loadClientsToSelects();
-        await renderLogsHistory();
-    });
-
-    function saveSettingsAndClose() {
-        const token = document.getElementById('ya-token').value;
-        if(token) {
-            localStorage.setItem('ya_token', token);
-            localStorage.setItem('ya_path', document.getElementById('ya-path').value);
-            toggleSettings();
-            showToast("Настройки сохранены", "success");
-            downloadFromYandex();
-        } else {
-            alert("Введите токен!");
-        }
-    }
-
-    function toggleSettings() {
-        const panel = document.getElementById('settings-panel');
-        panel.classList.toggle('open');
-    }
-
-    // --- НАВИГАЦИЯ ---
-    window.showSection = (id) => {
-        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        
-        const buttons = document.querySelectorAll('nav button');
-        buttons.forEach(btn => {
-            if(btn.getAttribute('onclick').includes(id)) btn.classList.add('active');
-        });
-
-        resetInactivityTimer();
-        
-        if(id === 'clients') renderClients();
-        if(id === 'journal') { loadClientsToSelects(); renderLogsHistory(); }
-        if(id === 'attendance') loadAttendance();
-        if(id === 'reports') { loadClientsToSelects(); renderReportsList(); }
-        if(id === 'dashboard') updateStats();
-    };
-
-    function updateStatus(msg, type="info") {
-        const bar = document.getElementById('sync-status-bar');
-        const icon = type === 'error' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-info-circle');
-        const color = type === 'error' ? '#721c24' : (type === 'success' ? '#155724' : '#856404');
-        const bg = type === 'error' ? '#f8d7da' : (type === 'success' ? '#d4edda' : '#fff3cd');
-        
-        bar.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
-        bar.style.color = color;
-        bar.style.background = bg;
-        bar.style.borderColor = type === 'error' ? '#f5c6cb' : (type === 'success' ? '#c3e6cb' : '#ffeeba');
-    }
-
-    function showToast(msg, type="info") {
-        const toast = document.getElementById('toast');
-        toast.innerText = msg;
-        toast.className = type + ' show';
-        setTimeout(() => { toast.classList.remove('show'); }, 4000);
-    }
-
-    // --- ЛОГИКА ЖУРНАЛОВ ---
-    function toggleLogFields() {
-        const type = document.getElementById('logType').value;
-        document.querySelectorAll('.log-fields').forEach(el => el.style.display = 'none');
-        document.getElementById(`fields-${type}`).style.display = 'block';
-    }
-
-    async function saveLog() {
-        const type = document.getElementById('logType').value;
-        const clientId = document.getElementById('logClient').value;
-        const date = document.getElementById('logDate').value;
-        
-        if(!clientId) return showToast('Выберите клиента', "error");
-        if(!date) return showToast('Выберите дату', "error");
-
-        let extra = {};
-        let details = "";
-
-        if(type === 'consultation') {
-            extra = {
-                room: document.getElementById('consRoom').value,
-                request: document.getElementById('consRequest').value,
-                content: document.getElementById('consContent').value,
-                result: document.getElementById('consResult').value,
-                recommendations: document.getElementById('consRec').value,
-                format: 'очно'
-            };
-            details = extra.request;
-        } else if (type === 'diagnostics') {
-            extra = {
-                methods: document.getElementById('diagMethods').value,
-                result: document.getElementById('diagResult').value,
-                conclusion: document.getElementById('diagConclusion').value
-            };
-            details = `${extra.methods}: ${extra.result}`;
-        } else if (type === 'patronage') {
-            extra = {
-                place: document.getElementById('patrPlace').value,
-                goal: document.getElementById('patrGoal').value,
-                observations: document.getElementById('patrObs').value,
-                recommendations: document.getElementById('patrRec').value
-            };
-            details = extra.observations;
-        } else if (type === 'correction') {
-            extra = {
-                program: document.getElementById('corrProgram').value,
-                process: document.getElementById('corrProcess').value,
-                notes: document.getElementById('corrNotes').value
-            };
-            details = extra.process;
-        }
-
-        const doc = {
-            _id: `log_${Date.now()}`,
-            type: 'log',
-            log_type: type,
-            client_id: clientId,
-            date: date,
-            extra: extra,
-            details: details,
-            timestamp: new Date().toISOString()
-        };
-
-        await db.put(doc);
-        await saveAttendanceMark(clientId, date, true);
-
-        showToast("Запись сохранена", "success");
-        
-        // Очистка полей
-        if(type === 'consultation') {
-            document.getElementById('consRoom').value = '';
-            document.getElementById('consRequest').value = '';
-            document.getElementById('consContent').value = '';
-            document.getElementById('consResult').value = '';
-            document.getElementById('consRec').value = '';
-        }
-        
-        await renderLogsHistory();
-        await updateStats();
-        resetInactivityTimer();
-    }
-
-    async function renderLogsHistory() {
-        const res = await db.allDocs({include_docs: true, startkey: 'log_', endkey: 'log_\uffff', descending: true, limit: 10});
-        const list = document.getElementById('logHistory');
-        list.innerHTML = '';
-        
-        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
-        const clientMap = {};
-        clients.rows.forEach(r => clientMap[r.doc._id] = r.doc.fio);
-
-        res.rows.forEach(r => {
-            const log = r.doc;
-            const fio = clientMap[log.client_id] || 'Неизвестно';
-            const card = document.createElement('div');
-            card.className = `entry-card ${log.log_type === 'diagnostics' ? 'diag' : (log.log_type === 'patronage' ? 'patron' : '')}`;
-            
-            let contentPreview = log.details.substring(0, 100) + (log.details.length > 100 ? '...' : '');
-            
-            card.innerHTML = `
-                <div class="entry-header">
+        <!-- SIDEBAR -->
+        <aside class="w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-20 hidden md:flex">
+            <div class="p-6 border-b border-slate-800">
+                <div class="flex items-center gap-3 text-white">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-xl font-bold shadow-lg shadow-blue-900/50">Ψ</div>
                     <div>
-                        <div class="entry-client">${fio}</div>
-                        <div class="entry-date">${log.date} <span class="entry-type">${log.log_type}</span></div>
-                    </div>
-                    <div class="entry-actions">
-                        ${log.log_type === 'consultation' ? `<button class="icon-btn print" title="Печать бланка" onclick="generateBlank('${log._id}')"><i class="fas fa-file-word"></i></button>` : ''}
-                        <button class="icon-btn" title="Удалить" onclick="deleteDoc('${log._id}')"><i class="fas fa-trash"></i></button>
+                        <h1 class="font-bold text-lg tracking-tight">АРМ Психолога</h1>
+                        <p class="text-xs text-slate-500">Южный дом-интернат</p>
                     </div>
                 </div>
-                <div class="entry-content">${contentPreview}</div>
-            `;
-            list.appendChild(card);
-        });
-        
-        if(res.rows.length === 0) list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Записей нет</div>';
-    }
+            </div>
 
-    // --- КЛИЕНТЫ ---
-    async function importClients() {
-        const raw = document.getElementById('importData').value;
-        if(!raw) return;
-        try {
-            const clients = JSON.parse(raw);
-            const docs = clients.map(c => ({
-                _id: 'client_' + Date.now() + '_' + Math.random(),
-                type: 'client',
-                fio: c.fio,
-                dob: c.dob || '',
-                group: c.group || '',
-                comment: c.comment || ''
-            }));
-            await db.bulkDocs(docs);
-            showToast(`Импортировано ${docs.length} клиентов`, "success");
-            document.getElementById('importData').value = '';
-            await renderClients();
-            await loadClientsToSelects();
-            await updateStats();
-        } catch(e) { showToast('Ошибка формата JSON', "error"); }
-    }
+            <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+                    :class="['w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group', 
+                    currentTab === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800 hover:text-white']">
+                    <i :class="[tab.icon, 'w-5 text-center', currentTab === tab.id ? 'text-white' : 'text-slate-500 group-hover:text-white']"></i>
+                    <span class="font-medium">{{ tab.name }}</span>
+                </button>
+            </nav>
 
-    async function renderClients() {
-        const search = document.getElementById('searchClient').value.toLowerCase();
-        const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
-        const list = document.getElementById('clientsList');
-        list.innerHTML = '';
-        
-        let count = 0;
-        res.rows.forEach(r => {
-            const c = r.doc;
-            if(c.fio.toLowerCase().includes(search)) {
-                count++;
-                const card = document.createElement('div');
-                card.className = 'entry-card';
-                card.style.borderLeftColor = '#7F8C8D';
-                card.innerHTML = `
-                    <div class="entry-header">
-                        <div>
-                            <div class="entry-client">${c.fio}</div>
-                            <div class="entry-date">ДР: ${c.dob} ${c.group ? '| ' + c.group : ''}</div>
-                        </div>
-                        <div class="entry-actions">
-                            <button class="icon-btn" onclick="deleteDoc('${c._id}')"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(card);
-            }
-        });
-        if(count === 0) list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Клиенты не найдены</div>';
-    }
+            <div class="p-4 border-t border-slate-800 space-y-3 bg-slate-900">
+                <button @click="syncToCloud" :disabled="isSyncing" class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20">
+                    <i class="fas fa-cloud-upload-alt" :class="{'fa-spin': isSyncing}"></i> 
+                    {{ isSyncing ? 'Синхронизация...' : 'Сохранить в Облако' }}
+                </button>
+                <button @click="loadFromCloud" :disabled="isSyncing" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors text-sm">
+                    <i class="fas fa-download mr-2"></i> Загрузить из Облака
+                </button>
+                <div class="text-[10px] text-slate-600 text-center uppercase tracking-widest pt-2">v 2.0 | Offline Ready</div>
+            </div>
+        </aside>
 
-    async function loadClientsToSelects() {
-        const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
-        const opts = '<option value="">-- Выберите клиента --</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
-        
-        document.getElementById('logClient').innerHTML = opts;
-        
-        const filterOpts = '<option value="all">Все клиенты</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
-        document.getElementById('reportClientFilter').innerHTML = filterOpts;
-    }
-
-    // --- ПОСЕЩАЕМОСТЬ ---
-    async function loadAttendance() {
-        const date = document.getElementById('attDate').value;
-        if(!date) return;
-        
-        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
-        const attData = await db.allDocs({include_docs: true, startkey: 'att_', endkey: 'att_\uffff'});
-        
-        const attMap = {};
-        attData.rows.forEach(r => {
-            if(r.doc.date === date) attMap[r.doc.client_id] = r.doc.is_present;
-        });
-
-        const tbody = document.getElementById('attList');
-        tbody.innerHTML = '';
-
-        clients.rows.forEach(r => {
-            const c = r.doc;
-            const isPresent = attMap[c._id] || false;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="text-align:left;">${c.fio}</td>
-                <td>
-                    <button class="check-btn ${isPresent ? 'present' : ''}" onclick="toggleAtt(this, '${c._id}')">
-                        ${isPresent ? '+' : ''}
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col min-w-0 bg-white">
+            <!-- Header -->
+            <header class="h-16 border-b border-slate-200 flex items-center justify-between px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    {{ currentTabName }}
+                    <span v-if="currentTab === 'clients'" class="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{{ clients.length }} чел.</span>
+                </h2>
+                <div class="flex gap-3">
+                    <button v-if="currentTab !== 'dashboard'" @click="openModal" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md shadow-blue-600/20 transition-transform active:scale-95 flex items-center gap-2 font-medium">
+                        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Добавить запись</span>
                     </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function toggleAtt(btn, clientId) {
-        btn.classList.toggle('present');
-        btn.innerText = btn.classList.contains('present') ? '+' : '';
-    }
-
-    async function saveAttendanceMark(clientId, date, isPresent) {
-        const id = `att_${clientId}_${date}`;
-        try {
-            const existing = await db.get(id).catch(() => null);
-            if(existing) {
-                existing.is_present = isPresent;
-                await db.put(existing);
-            } else {
-                await db.put({ _id: id, type: 'attendance', client_id: clientId, date: date, is_present: isPresent });
-            }
-        } catch(e) { console.error(e); }
-    }
-
-    async function saveAttendance() {
-        const date = document.getElementById('attDate').value;
-        const rows = document.querySelectorAll('#attList tr');
-        let count = 0;
-        
-        for(let tr of rows) {
-            const btn = tr.querySelector('.check-btn');
-            const clientId = btn.getAttribute('onclick').split("'")[1];
-            const isPresent = btn.classList.contains('present');
-            await saveAttendanceMark(clientId, date, isPresent);
-            if(isPresent) count++;
-        }
-        
-        showToast(`Сохранено ${count} отметок`, "success");
-        resetInactivityTimer();
-    }
-
-    // --- ОТЧЕТЫ И ГЕНЕРАЦИЯ DOCX ---
-    async function renderReportsList() {
-        const filterId = document.getElementById('reportClientFilter').value;
-        const logs = await db.allDocs({include_docs: true, startkey: 'log_', endkey: 'log_\uffff'});
-        const clients = await db.allDocs({include_docs: true, startkey: 'client_', endkey: 'client_\uffff'});
-        const clientMap = {};
-        clients.rows.forEach(r => clientMap[r.doc._id] = r.doc.fio);
-
-        const list = document.getElementById('reportsList');
-        list.innerHTML = '';
-
-        let filtered = logs.rows.filter(r => r.doc.log_type === 'consultation');
-        if(filterId !== 'all') {
-            filtered = filtered.filter(r => r.doc.client_id === filterId);
-        }
-
-        filtered.sort((a,b) => new Date(b.doc.date) - new Date(a.doc.date));
-
-        if(filtered.length === 0) {
-            list.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">Нет записей консультаций</div>';
-            return;
-        }
-
-        filtered.forEach(r => {
-            const log = r.doc;
-            const fio = clientMap[log.client_id] || 'Неизвестно';
-            const card = document.createElement('div');
-            card.className = 'entry-card';
-            card.innerHTML = `
-                <div class="entry-header">
-                    <div>
-                        <div class="entry-client">${fio}</div>
-                        <div class="entry-date">${log.date}</div>
-                    </div>
-                    <button class="big-btn btn-blue" style="width:auto; padding: 8px 15px; margin:0;" onclick="generateBlank('${log._id}')">
-                        <i class="fas fa-file-word"></i> Скачать бланк
+                    <button v-if="currentTab === 'clients'" @click="importClientsPrompt" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                        <i class="fas fa-file-import mr-1"></i> Импорт
                     </button>
                 </div>
-                <div class="entry-content">${log.details.substring(0, 80)}...</div>
-            `;
-            list.appendChild(card);
-        });
-    }
+            </header>
 
-    async function generateBlank(logId) {
-        const log = await db.get(logId);
-        const client = await db.get(log.client_id);
-        const extra = log.extra || {};
-
-        const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, HeadingLevel } = docx;
-
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: [
-                    new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: "center", style: "Normal" }),
-                    new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: "center", style: "Normal" }),
-                    new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", alignment: "center", heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto p-6 bg-slate-50">
+                
+                <!-- DASHBOARD -->
+                <div v-if="currentTab === 'dashboard'" class="max-w-5xl mx-auto space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div class="text-slate-500 text-sm font-medium mb-1">Всего клиентов</div>
+                            <div class="text-3xl font-bold text-slate-800">{{ stats.clients }}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div class="text-slate-500 text-sm font-medium mb-1">Записей в журналах</div>
+                            <div class="text-3xl font-bold text-slate-800">{{ stats.logs }}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <div class="text-slate-500 text-sm font-medium mb-1">Посещаемость сегодня</div>
+                            <div class="text-3xl font-bold text-emerald-600">{{ stats.attendanceToday }} <span class="text-sm text-slate-400 font-normal">чел.</span></div>
+                        </div>
+                    </div>
                     
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        rows: [
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата консультации:", bold:true})]}), new TableCell({children: [new Paragraph(log.date)]}) ] }),
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. получателя услуг:", bold:true})]}), new TableCell({children: [new Paragraph(client.fio)]}) ] }),
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client.dob || "")]}) ] }),
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната / Категория:", bold:true})]}), new TableCell({children: [new Paragraph(extra.room || "")]}) ] }),
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. психолога:", bold:true})]}), new TableCell({children: [new Paragraph("Психолог Интерната")]}) ] }),
-                            new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Вид консультации:", bold:true})]}), new TableCell({children: [new Paragraph(extra.format || "очно")]}) ] }),
-                        ]
-                    }),
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-6">
+                        <h3 class="font-bold text-blue-900 mb-2"><i class="fas fa-info-circle mr-2"></i>Как это работает</h3>
+                        <ul class="space-y-2 text-sm text-blue-800 list-disc list-inside">
+                            <li>Все данные хранятся локально в браузере (безопасно, работает без интернета).</li>
+                            <li>Нажми <b>"Сохранить в Облако"</b>, чтобы создать резервную копию на Яндекс.Диске.</li>
+                            <li>На другом устройстве нажми <b>"Загрузить из Облака"</b>, чтобы получить все данные.</li>
+                            <li>Файл бэкапа: <code class="bg-white px-1 rounded">/journals_backup.json</code> в корне вашего Диска.</li>
+                        </ul>
+                    </div>
+                </div>
 
-                    new Paragraph({ text: "", spacing: { after: 200 } }),
-                    new Paragraph({ text: "1. Запрос ПСУ", heading: HeadingLevel.HEADING_2 }),
-                    new Paragraph({ text: extra.request || "", spacing: { after: 200 } }),
-                    new Paragraph({ text: "2. Содержание консультационной работы", heading: HeadingLevel.HEADING_2 }),
-                    new Paragraph({ text: extra.content || "", spacing: { after: 200 } }),
-                    new Paragraph({ text: "3. Результаты консультации", heading: HeadingLevel.HEADING_2 }),
-                    new Paragraph({ text: extra.result || "", spacing: { after: 200 } }),
-                    new Paragraph({ text: "4. Рекомендации", heading: HeadingLevel.HEADING_2 }),
-                    new Paragraph({ text: extra.recommendations || "", spacing: { after: 400 } }),
+                <!-- LISTS (Clients, Logs, Attendance) -->
+                <div v-else class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <!-- Filters for Logs -->
+                    <div v-if="['consultations', 'diagnostics', 'patronage', 'correction'].includes(currentTab)" class="p-4 border-b border-slate-100 bg-slate-50 flex gap-4 flex-wrap">
+                        <input type="date" v-model="filters.date" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select v-model="filters.clientId" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none max-w-xs">
+                            <option value="">Все клиенты</option>
+                            <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option>
+                        </select>
+                        <button @click="applyFilters" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700">Применить</button>
+                        <button @click="resetFilters" class="text-slate-500 px-4 py-1.5 text-sm hover:text-slate-700">Сброс</button>
+                    </div>
 
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        rows: [
-                            new TableRow({ children: [ 
-                                new TableCell({children: [new Paragraph("Психолог: __________________")] }), 
-                                new TableCell({children: [new Paragraph("Дата: __________________")] }) 
-                            ]}),
-                            new TableRow({ children: [ 
-                                new TableCell({children: [new Paragraph("Подпись получателя услуг: __________________")] }), 
-                                new TableCell({children: [new Paragraph("Дата: __________________")] }) 
-                            ]}),
-                        ]
-                    })
-                ]
-            }]
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4 w-32">Дата</th>
+                                    <th class="p-4 w-64">Клиент</th>
+                                    <th class="p-4">Содержание / Детали</th>
+                                    <th class="p-4 w-48 text-right">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700 text-sm">
+                                <tr v-for="item in filteredItems" :key="item.id" class="hover:bg-blue-50/50 transition-colors group">
+                                    <td class="p-4 whitespace-nowrap font-mono text-slate-500">{{ formatDate(item.date) }}</td>
+                                    <td class="p-4 font-medium text-slate-900">{{ getClientName(item.client_id) }}</td>
+                                    <td class="p-4 text-slate-600 truncate max-w-md" :title="getItemDetails(item)">{{ getItemDetails(item) }}</td>
+                                    <td class="p-4 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button v-if="item.log_type === 'consultation'" @click="downloadDoc(item)" title="Скачать бланк DOCX" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-100 rounded-full transition-colors">
+                                            <i class="fas fa-file-word"></i>
+                                        </button>
+                                        <button @click="deleteItem(item.id)" title="Удалить" class="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredItems.length === 0">
+                                    <td colspan="4" class="p-12 text-center text-slate-400">
+                                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                                        <p>В этом журнале пока нет записей</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ATTENDANCE VIEW -->
+                <div v-if="currentTab === 'attendance'" class="max-w-6xl mx-auto space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <label class="font-bold text-slate-700">Дата:</label>
+                            <input type="date" v-model="attendanceDate" @change="loadAttendance" class="border border-slate-300 rounded-lg px-3 py-2 text-lg font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <button @click="saveAttendance" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-600/20 transition-transform active:scale-95">
+                            <i class="fas fa-save mr-2"></i> Сохранить отметки
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold border-b">
+                                <tr>
+                                    <th class="p-4 text-left">ФИО Клиента</th>
+                                    <th class="p-4 text-center w-32">Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                <tr v-for="client in clients" :key="client.id" class="hover:bg-slate-50">
+                                    <td class="p-4 font-medium">{{ client.fio }}</td>
+                                    <td class="p-4 text-center">
+                                        <button @click="toggleAttendance(client.id)" 
+                                            :class="['w-12 h-12 rounded-full text-xl font-bold transition-all shadow-sm', 
+                                            attendanceMap[client.id] ? 'bg-emerald-500 text-white shadow-emerald-500/30 scale-110' : 'bg-slate-100 text-slate-300 hover:bg-slate-200']">
+                                            {{ attendanceMap[client.id] ? '+' : '' }}
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- MODAL FOR NEW ENTRY -->
+        <transition name="fade">
+            <div v-if="showModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+                <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200 my-8">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-lg">Новая запись: {{ currentTabName }}</h3>
+                        <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Дата</label>
+                                <input v-model="form.date" type="date" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Клиент</label>
+                                <select v-model="form.client_id" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                    <option value="">Выберите клиента...</option>
+                                    <option v-for="c in clients" :key="c.id" :value="c.id">{{ c.fio }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Fields based on Tab -->
+                        <div v-if="currentTab === 'consultations'">
+                            <div class="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Комната / Категория</label>
+                                    <input v-model="form.extra.room" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Напр. 105, Группа А">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Вид</label>
+                                    <select v-model="form.extra.format" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                        <option value="очно">Очно</option>
+                                        <option value="дистанционно">Дистанционно</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Запрос (Жалобы)</label>
+                                    <textarea v-model="form.extra.request" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Содержание работы</label>
+                                    <textarea v-model="form.extra.content" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Результат</label>
+                                    <textarea v-model="form.extra.result" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Рекомендации</label>
+                                    <textarea v-model="form.extra.recommendations" rows="2" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else-if="currentTab === 'diagnostics'">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Методики</label>
+                                <input v-model="form.extra.methods" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Напр. MMSE, HADS">
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Результат (баллы)</label>
+                                <input v-model="form.extra.result" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Заключение</label>
+                                <textarea v-model="form.extra.conclusion" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                        </div>
+
+                        <div v-else-if="currentTab === 'patronage'">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Место / Условия</label>
+                                <input v-model="form.extra.place" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Цель</label>
+                                <input v-model="form.extra.goal" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Наблюдения</label>
+                                <textarea v-model="form.extra.observations" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                        </div>
+
+                        <div v-else-if="currentTab === 'correction'">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Программа</label>
+                                <input v-model="form.extra.program" type="text" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ход занятия</label>
+                                <textarea v-model="form.extra.process" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Client Creation Fallback (if no clients) -->
+                        <div v-if="clients.length === 0" class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mt-4">
+                            <p class="text-sm text-yellow-800 font-bold mb-2"><i class="fas fa-exclamation-triangle mr-1"></i> Список клиентов пуст!</p>
+                            <p class="text-xs text-yellow-700 mb-2">Сначала добавьте клиентов через кнопку "Импорт" или создайте нового вручную здесь:</p>
+                            <div class="flex gap-2">
+                                <input v-model="newClientFio" placeholder="ФИО клиента" class="flex-1 border border-yellow-300 rounded px-2 py-1 text-sm">
+                                <button @click="createQuickClient" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm font-bold hover:bg-yellow-700">Добавить</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="p-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                        <button @click="showModal = false" class="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors">Отмена</button>
+                        <button @click="saveEntry" :disabled="!form.client_id" class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            Сохранить в базу
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Toast Notification -->
+        <transition name="fade">
+            <div v-if="toast.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl text-white font-medium flex items-center gap-3 z-50', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
+                <i :class="['fas', toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle']"></i>
+                {{ toast.message }}
+            </div>
+        </transition>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch, reactive } = Vue;
+
+        // --- 1. DATABASE SETUP (Dexie.js) ---
+        const db = new Dexie("PsychologistARM_DB");
+        db.version(1).stores({
+            clients: '++id, fio, dob, group',
+            logs: '++id, log_type, client_id, date',
+            attendance: '++id, client_id, date'
         });
 
-        Packer.toBlob(doc).then(blob => {
-            saveAs(blob, `Blank_${client.fio}_${log.date}.docx`);
-            showToast("Бланк сгенерирован", "success");
-        });
-    }
+        createApp({
+            setup() {
+                // State
+                const currentTab = ref('dashboard');
+                const showModal = ref(false);
+                const isSyncing = ref(false);
+                const clients = ref([]);
+                const logs = ref([]);
+                const attendanceMap = reactive({}); // { clientId: true/false }
+                const attendanceDate = ref(new Date().toISOString().split('T')[0]);
+                
+                // Form State
+                const form = reactive({
+                    date: new Date().toISOString().split('T')[0],
+                    client_id: '',
+                    extra: {}
+                });
+                const newClientFio = ref('');
 
-    // --- УДАЛЕНИЕ ---
-    async function deleteDoc(id) {
-        if(!confirm('Удалить эту запись?')) return;
-        const doc = await db.get(id);
-        await db.remove(doc);
-        showToast("Удалено", "success");
-        renderClients();
-        renderLogsHistory();
-        renderReportsList();
-        updateStats();
-    }
+                // Filters
+                const filters = reactive({ date: '', clientId: '' });
 
-    async function updateStats() {
-        const clients = await db.allDocs({ startkey: 'client_', endkey: 'client_\uffff' });
-        const logs = await db.allDocs({ startkey: 'log_', endkey: 'log_\uffff' });
-        document.getElementById('stat-clients').innerText = clients.rows.length;
-        document.getElementById('stat-logs').innerText = logs.rows.length;
-    }
+                // Toast
+                const toast = reactive({ show: false, message: '', type: 'success' });
 
-    // --- ЯНДЕКС ДИСК (Синхронизация) ---
-    async function getYandexHeaders() {
-        const token = document.getElementById('ya-token').value;
-        const path = document.getElementById('ya-path').value;
-        if (!token || token === "ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ЯНДЕКСА") throw new Error("Нет токена!");
-        return { token, path };
-    }
+                // Config
+                const YANDEX_TOKEN = "y0__xDK6dTEBBiS_z4gxrzY4RYwzYO1rgh_qP4PFjNk5gM-6qh4F94uEJpT3g";
+                const YANDEX_PATH = "/journals_backup.json";
 
-    async function getFileId(path, token) {
-        const url = `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(path)}`;
-        const resp = await fetch(url, { headers: { Authorization: `OAuth ${token}` } });
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        return data.id;
-    }
+                // Tabs Definition
+                const tabs = [
+                    { id: 'dashboard', name: 'Главная', icon: 'fas fa-home' },
+                    { id: 'clients', name: 'Клиенты', icon: 'fas fa-users' },
+                    { id: 'consultations', name: 'Консультации', icon: 'fas fa-comments' },
+                    { id: 'diagnostics', name: 'Диагностика', icon: 'fas fa-clipboard-list' },
+                    { id: 'patronage', name: 'Патронаж', icon: 'fas fa-house-user' },
+                    { id: 'correction', name: 'Коррекция', icon: 'fas fa-brain' },
+                    { id: 'attendance', name: 'Посещаемость', icon: 'fas fa-calendar-check' }
+                ];
 
-    async function downloadFromYandex() {
-        updateStatus("Скачивание базы...", "info");
-        try {
-            const { token, path } = await getYandexHeaders();
-            let fileId = await getFileId(path, token);
-            if (!fileId) { updateStatus("Файл не найден", "warning"); return; }
+                // Computed
+                const currentTabName = computed(() => tabs.find(t => t.id === currentTab.value)?.name || '');
+                
+                const stats = computed(() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    return {
+                        clients: clients.value.length,
+                        logs: logs.value.length,
+                        attendanceToday: Object.values(attendanceMap).filter(Boolean).length
+                    };
+                });
 
-            const dlUrlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(path)}`, { headers: { Authorization: `OAuth ${token}` } });
-            const dlData = await dlUrlResp.json();
-            const fileResp = await fetch(dlData.href);
-            const jsonData = await fileResp.json();
+                const filteredItems = computed(() => {
+                    if (['clients', 'attendance', 'dashboard'].includes(currentTab.value)) return [];
+                    
+                    let typeMap = {
+                        'consultations': 'consultation',
+                        'diagnostics': ['diagnostics', /test_/],
+                        'patronage': 'patronage',
+                        'correction': 'correction'
+                    };
+                    
+                    let targetType = typeMap[currentTab.value];
+                    
+                    return logs.value.filter(item => {
+                        // Type Filter
+                        let matchType = false;
+                        if (Array.isArray(targetType)) {
+                            matchType = targetType.some(t => typeof t === 'string' ? item.log_type === t : item.log_type.match(t));
+                        } else {
+                            matchType = item.log_type === targetType;
+                        }
+                        if (!matchType) return false;
 
-            await db.destroy();
-            db = new PouchDB(DB_NAME);
-            await db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
-            await db.createIndex({ index: { fields: ['fio'] } });
+                        // Date Filter
+                        if (filters.date && item.date !== filters.date) return false;
+                        
+                        // Client Filter
+                        if (filters.clientId && item.client_id != filters.clientId) return false;
 
-            if (jsonData.length > 0) {
-                await db.bulkDocs(jsonData);
-                updateStatus(`✅ Загружено ${jsonData.length} записей`, "success");
-                showToast("База обновлена!", "success");
+                        return true;
+                    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+
+                // Methods
+                const showToast = (msg, type = 'success') => {
+                    toast.message = msg;
+                    toast.type = type;
+                    toast.show = true;
+                    setTimeout(() => toast.show = false, 3000);
+                };
+
+                const loadData = async () => {
+                    clients.value = await db.clients.orderBy('fio').toArray();
+                    logs.value = await db.logs.orderBy('date').reverse().toArray();
+                    if (currentTab.value === 'attendance') loadAttendance();
+                };
+
+                const getClientName = (id) => {
+                    const c = clients.value.find(x => x.id === id);
+                    return c ? c.fio : 'Неизвестно';
+                };
+
+                const getItemDetails = (item) => {
+                    const ex = item.extra_fields || {};
+                    if (item.log_type === 'consultation') return ex.request || ex.content || 'Нет описания';
+                    if (item.log_type === 'diagnostics' || item.log_type.startsWith('test_')) return `${ex.methods || ''}: ${ex.result || ''}`;
+                    if (item.log_type === 'patronage') return ex.observations || ex.goal;
+                    if (item.log_type === 'correction') return ex.process || ex.program;
+                    return item.details || '';
+                };
+
+                const openModal = () => {
+                    if (clients.value.length === 0) {
+                        showToast('Сначала добавьте клиентов!', 'error');
+                        currentTab.value = 'clients';
+                        return;
+                    }
+                    form.date = new Date().toISOString().split('T')[0];
+                    form.client_id = '';
+                    form.extra = {};
+                    showModal.value = true;
+                };
+
+                const createQuickClient = async () => {
+                    if (!newClientFio.value) return;
+                    await db.clients.add({ fio: newClientFio.value, dob: null, group: '' });
+                    newClientFio.value = '';
+                    await loadData();
+                    showToast('Клиент добавлен');
+                };
+
+                const saveEntry = async () => {
+                    if (!form.client_id) return showToast('Выберите клиента', 'error');
+                    
+                    let logType = currentTab.value === 'consultations' ? 'consultation' : 
+                                  currentTab.value === 'diagnostics' ? 'diagnostics' :
+                                  currentTab.value === 'patronage' ? 'patronage' : 'correction';
+                    
+                    // Create details summary
+                    let details = '';
+                    if (logType === 'consultation') details = form.extra.request || '';
+                    else if (logType === 'diagnostics') details = `${form.extra.methods}: ${form.extra.result}`;
+                    else if (logType === 'patronage') details = form.extra.observations || '';
+                    else details = form.extra.process || '';
+
+                    await db.logs.add({
+                        log_type: logType,
+                        client_id: parseInt(form.client_id),
+                        date: form.date,
+                        extra_fields: { ...form.extra },
+                        details: details
+                    });
+
+                    // Auto Attendance
+                    await db.attendance.put({
+                        client_id: parseInt(form.client_id),
+                        date: form.date,
+                        is_present: true
+                    }, `[${parseInt(form.client_id)},${form.date}]`); // Composite key logic handled by query usually, but Dexie needs unique index or we just add
+
+                    showModal.value = false;
+                    await loadData();
+                    showToast('Запись сохранена');
+                };
+
+                const deleteItem = async (id) => {
+                    if(!confirm('Удалить запись безвозвратно?')) return;
+                    await db.logs.delete(id);
+                    await loadData();
+                    showToast('Удалено');
+                };
+
+                // Attendance Logic
+                const loadAttendance = async () => {
+                    const date = attendanceDate.value;
+                    const marks = await db.attendance.where('date').equals(date).toArray();
+                    // Reset map
+                    Object.keys(attendanceMap).forEach(k => delete attendanceMap[k]);
+                    marks.forEach(m => {
+                        if (m.is_present) attendanceMap[m.client_id] = true;
+                    });
+                };
+
+                const toggleAttendance = (clientId) => {
+                    if (attendanceMap[clientId]) delete attendanceMap[clientId];
+                    else attendanceMap[clientId] = true;
+                };
+
+                const saveAttendance = async () => {
+                    const date = attendanceDate.value;
+                    const batch = Object.keys(attendanceMap).map(cid => ({
+                        client_id: parseInt(cid),
+                        date: date,
+                        is_present: true
+                    }));
+                    
+                    // Clear existing for this date first (simple approach)
+                    // In real app, we'd upsert carefully. Here we just add/overwrite logic in Dexie if we had unique index on (client, date)
+                    // For simplicity in this demo, we just add. Duplicate handling requires schema change or careful get/put.
+                    // Let's do a clear then add for safety on this specific date view
+                    const existing = await db.attendance.where('date').equals(date).toArray();
+                    await db.attendance.bulkDelete(existing.map(x => x.id));
+                    
+                    await db.attendance.bulkAdd(batch);
+                    showToast('Посещаемость сохранена');
+                    await loadData();
+                };
+
+                // Import Clients
+                const importClientsPrompt = async () => {
+                    const jsonStr = prompt("Вставьте JSON массив клиентов:\n[{\"fio\":\"Иванов И.И.\", \"dob\":\"1950-01-01\"}, ...]");
+                    if (!jsonStr) return;
+                    try {
+                        const data = JSON.parse(jsonStr);
+                        if (!Array.isArray(data)) throw new Error("Нужен массив");
+                        
+                        const validClients = data.map(c => ({
+                            fio: c.fio || c.name || "Без имени",
+                            dob: c.dob || null,
+                            group: c.group || ""
+                        })).filter(c => c.fio);
+
+                        await db.clients.bulkAdd(validClients);
+                        await loadData();
+                        showToast(`Импортировано ${validClients.length} клиентов`);
+                    } catch (e) {
+                        showToast('Ошибка импорта: ' + e.message, 'error');
+                    }
+                };
+
+                // DOCX Generation (Strict Template Match)
+                const downloadDoc = async (item) => {
+                    const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, HeadingLevel, AlignmentType } = docx;
+                    
+                    const client = clients.value.find(c => c.id === item.client_id);
+                    const ex = item.extra_fields || {};
+
+                    const doc = new Document({
+                        sections: [{
+                            properties: {},
+                            children: [
+                                // Header
+                                new Paragraph({ text: "Государственное бюджетное учреждение Самарской области", alignment: AlignmentType.CENTER, style: "Normal" }),
+                                new Paragraph({ text: "«Южный дом-интернат для престарелых, инвалидов»", alignment: AlignmentType.CENTER, style: "Normal" }),
+                                new Paragraph({ text: "", spacing: { after: 200 } }),
+                                new Paragraph({ text: "БЛАНК ИНДИВИДУАЛЬНОЙ КОНСУЛЬТАЦИИ", alignment: AlignmentType.CENTER, heading: HeadingLevel.HEADING_1, spacing: { after: 300 } }),
+                                
+                                // Main Table
+                                new Table({
+                                    width: { size: 100, type: WidthType.PERCENTAGE },
+                                    rows: [
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата консультации:", bold:true})]}), new TableCell({children: [new Paragraph(item.date)]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. получателя услуг:", bold:true})]}), new TableCell({children: [new Paragraph(client ? client.fio : "")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Дата рождения:", bold:true})]}), new TableCell({children: [new Paragraph(client && client.dob ? client.dob : "")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Комната / Категория:", bold:true})]}), new TableCell({children: [new Paragraph(ex.room || "")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Ф.И.О. психолога:", bold:true})]}), new TableCell({children: [new Paragraph("Психолог Интерната")]}) ] }),
+                                        new TableRow({ children: [ new TableCell({children: [new Paragraph({text:"Вид консультации:", bold:true})]}), new TableCell({children: [new Paragraph(ex.format || "очно")]}) ] }),
+                                    ]
+                                }),
+
+                                new Paragraph({ text: "", spacing: { after: 300 } }),
+
+                                // Sections
+                                new Paragraph({ text: "1. Запрос ПСУ", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+                                new Paragraph({ text: ex.request || "", spacing: { after: 200 } }),
+
+                                new Paragraph({ text: "2. Содержание консультационной работы", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+                                new Paragraph({ text: ex.content || "", spacing: { after: 200 } }),
+
+                                new Paragraph({ text: "3. Результаты консультации", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+                                new Paragraph({ text: ex.result || "", spacing: { after: 200 } }),
+
+                                new Paragraph({ text: "4. Рекомендации", heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }),
+                                new Paragraph({ text: ex.recommendations || "", spacing: { after: 400 } }),
+
+                                // Signatures
+                                new Table({
+                                    width: { size: 100, type: WidthType.PERCENTAGE },
+                                    rows: [
+                                        new TableRow({ children: [ 
+                                            new TableCell({children: [new Paragraph("Психолог: __________________")] }), 
+                                            new TableCell({children: [new Paragraph("Дата: __________________")] }) 
+                                        ]}),
+                                        new TableRow({ children: [ 
+                                            new TableCell({children: [new Paragraph("Подпись получателя услуг: __________________")] }), 
+                                            new TableCell({children: [new Paragraph("Дата: __________________")] }) 
+                                        ]}),
+                                    ]
+                                })
+                            ]
+                        }]
+                    });
+
+                    const blob = await Packer.toBlob(doc);
+                    saveAs(blob, `Blank_${client ? client.fio.replace(/[^a-zа-я0-9]/gi, '_') : 'Client'}_${item.date}.docx`);
+                    showToast("Бланк скачан");
+                };
+
+                // Yandex Sync
+                const syncToCloud = async () => {
+                    isSyncing.value = true;
+                    try {
+                        const data = {
+                            clients: await db.clients.toArray(),
+                            logs: await db.logs.toArray(),
+                            attendance: await db.attendance.toArray(),
+                            timestamp: new Date().toISOString()
+                        };
+
+                        // Get Upload URL
+                        const uploadRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(YANDEX_PATH)}&overwrite=true`, {
+                            headers: { Authorization: `OAuth ${YANDEX_TOKEN}` }
+                        });
+                        if (!uploadRes.ok) throw new Error("Ошибка доступа к Яндекс.Диску");
+                        const { href } = await uploadRes.json();
+
+                        // Upload Data
+                        const putRes = await fetch(href, {
+                            method: 'PUT',
+                            body: JSON.stringify(data)
+                        });
+                        if (!putRes.ok) throw new Error("Ошибка загрузки файла");
+
+                        showToast("✅ Синхронизация успешна!");
+                    } catch (e) {
+                        console.error(e);
+                        showToast("❌ Ошибка: " + e.message, 'error');
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
+
+                const loadFromCloud = async () => {
+                    if (!confirm("ВНИМАНИЕ: Все текущие локальные данные будут заменены данными из облака. Продолжить?")) return;
+                    isSyncing.value = true;
+                    try {
+                        // Get Download URL
+                        const downRes = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(YANDEX_PATH)}`, {
+                            headers: { Authorization: `OAuth ${YANDEX_TOKEN}` }
+                        });
+                        if (!downRes.ok) throw new Error("Файл не найден в облаке или ошибка доступа");
+                        const { href } = await downRes.json();
+
+                        // Download Data
+                        const getData = await fetch(href);
+                        const data = await getData.json();
+
+                        // Restore to DB
+                        await db.transaction('rw', db.clients, db.logs, db.attendance, async () => {
+                            await db.clients.clear();
+                            await db.logs.clear();
+                            await db.attendance.clear();
+                            
+                            if (data.clients) await db.clients.bulkAdd(data.clients);
+                            if (data.logs) await db.logs.bulkAdd(data.logs);
+                            if (data.attendance) await db.attendance.bulkAdd(data.attendance);
+                        });
+
+                        showToast("✅ Данные загружены! Перезагрузка...");
+                        setTimeout(() => location.reload(), 1500);
+                    } catch (e) {
+                        showToast("❌ Ошибка: " + e.message, 'error');
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
+
+                const applyFilters = () => { /* Triggered by reactivity */ };
+                const resetFilters = () => { filters.date = ''; filters.clientId = ''; };
+                const formatDate = (d) => {
+                    if (!d) return '';
+                    const [y, m, day] = d.split('-');
+                    return `${day}.${m}.${y}`;
+                };
+
+                // Init
+                onMounted(loadData);
+                watch(currentTab, () => {
+                    if (currentTab.value === 'attendance') loadAttendance();
+                });
+
+                return {
+                    currentTab, tabs, currentTabName, showModal, isSyncing,
+                    clients, filteredItems, stats, attendanceMap, attendanceDate,
+                    form, newClientFio, filters, toast,
+                    openModal, saveEntry, deleteItem, getClientName, getItemDetails,
+                    toggleAttendance, saveAttendance, loadAttendance,
+                    importClientsPrompt, createQuickClient,
+                    downloadDoc, syncToCloud, loadFromCloud,
+                    applyFilters, resetFilters, formatDate
+                };
             }
-            await updateStats();
-            await renderClients();
-            await loadClientsToSelects();
-            await renderLogsHistory();
-
-        } catch (e) {
-            updateStatus(`Ошибка: ${e.message}`, "error");
-            showToast("Ошибка загрузки", "error");
-        }
-    }
-
-    async function uploadToYandex(silent = false) {
-        if(!silent) updateStatus("Загрузка базы...", "info");
-        try {
-            const { token, path } = await getYandexHeaders();
-            const allDocs = await db.allDocs({ include_docs: true });
-            const exportData = allDocs.rows.map(r => r.doc);
-            const blob = new Blob([JSON.stringify(exportData)], {type: "application/json"});
-
-            let fileId = await getFileId(path, token);
-            let uploadUrl;
-            if (fileId) {
-                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}&overwrite=true`, { headers: { Authorization: `OAuth ${token}` } });
-                const data = await resp.json();
-                uploadUrl = data.upload_url;
-            } else {
-                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}`, { headers: { Authorization: `OAuth ${token}` } });
-                const data = await resp.json();
-                uploadUrl = data.upload_url;
-            }
-
-            const uploadResp = await fetch(uploadUrl, { method: 'PUT', body: blob });
-            if (uploadResp.ok) {
-                updateStatus("✅ Сохранено на Яндекс.Диск", "success");
-                if(!silent) showToast("Данные синхронизированы", "success");
-            } else { throw new Error("Ошибка загрузки"); }
-        } catch (e) {
-            updateStatus(`Ошибка: ${e.message}`, "error");
-            if(!silent) showToast("Ошибка сохранения", "error");
-        }
-    }
-
-    async function finishShift() {
-        if(!confirm("Завершить смену и синхронизировать данные?")) return;
-        await uploadToYandex(false);
-        alert("Смена завершена. Данные сохранены.");
-    }
-
-    // Предупреждение при закрытии
-    window.addEventListener('beforeunload', (e) => {
-        if(localStorage.getItem('ya_token')) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    });
-</script>
+        }).mount('#app');
+    </script>
 </body>
 </html>
