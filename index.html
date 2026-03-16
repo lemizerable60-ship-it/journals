@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PsychoSuite | Южный дом-интернат</title>
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@8.0.1/dist/pouchdb.min.js"></script>
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Иконки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-blue: #4A90E2;
+            --bg-color: #F5F7FA;
+            --card-white: #FFFFFF;
+            --text-dark: #2C3E50;
+            --text-light: #7F8C8D;
+            --btn-red: #E74C3C;
+            --btn-green: #2ECC71;
+            --btn-blue: #4A90E2;
+            --shadow: 0 2px 10px rgba(0,0,0,0.08);
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        header {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-icon {
+            cursor: pointer;
+            font-size: 1.2rem;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .settings-icon:hover { opacity: 1; }
+
+        /* NAVIGATION */
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            position: sticky;
+            top: 60px;
+            z-index: 99;
+        }
+
+        nav button {
+            padding: 10px 20px;
+            border: 2px solid transparent;
+            background: transparent;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        nav button:hover {
+            background: #f0f4f8;
+            color: var(--primary-blue);
+        }
+
+        nav button.active {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
+        }
+
+        /* MAIN CONTENT */
+        main {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* CARDS & BUTTONS */
+        .menu-card {
+            background: var(--card-white);
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .stats-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            text-align: left;
+            border-left: 4px solid var(--primary-blue);
+        }
+        .stats-box strong { color: var(--primary-blue); }
+
+        .big-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: none;
+            border-radius: var(--radius);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            text-align: center;
+            text-decoration: none;
+        }
+        .big-btn:active { transform: scale(0.98); }
+        .big-btn:hover { opacity: 0.9; }
+
+        .btn-red { background-color: var(--btn-red); }
+        .btn-green { background-color: var(--btn-green); }
+        .btn-blue { background-color: var(--btn-blue); }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--btn-blue);
+            color: var(--btn-blue);
+        }
+        .btn-outline:hover { background: var(--btn-blue); color: white; }
+
+        .btn-finish {
+            background: #c0392b;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(192, 57, 43, 0.3);
+        }
+
+        /* FORMS */
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        /* LISTS (Clients & Results) */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .client-card, .result-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .client-card:hover, .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .client-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+        .client-dob {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        .client-actions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-light);
+            font-size: 1rem;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+        .icon-btn:hover { color: var(--btn-red); }
+        .icon-btn.edit:hover { color: var(--primary-blue); }
+
+        /* Result Cards (Blue style) */
+        .result-card {
+            background: var(--primary-blue);
+            color: white;
+        }
+        .result-method {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .result-date {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 15px;
+            display: block;
+        }
+        .result-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        .result-desc {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        /* Sync Status & Toast */
+        #sync-status-bar {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #ffeeba;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateY(100px);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 1000;
+            min-width: 250px;
+            text-align: center;
+        }
+        #toast.show { transform: translateY(0); }
+        #toast.success { border-left: 5px solid var(--btn-green); }
+        #toast.error { border-left: 5px solid var(--btn-red); }
+
+        /* Timer Display */
+        .timer-display {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-top: 20px;
+            display: none;
+        }
+        .settings-panel.open { display: block; }
+
+        @media (max-width: 600px) {
+            nav { top: 50px; }
+            .header-title span { display: none; } /* Скрыть текст на очень маленьких экранах */
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <i class="fas fa-brain"></i>
+        <span>PsychoSuite</span>
+    </div>
+    <div class="settings-icon" onclick="toggleSettings()">
+        <i class="fas fa-cog"></i>
+    </div>
+</header>
+
+<div id="sync-status-bar">
+    <i class="fas fa-info-circle"></i> Проверка статуса синхронизации...
+</div>
+
+<nav>
+    <button onclick="showSection('dashboard')" class="active"><i class="fas fa-home"></i> Главная</button>
+    <button onclick="showSection('clients')"><i class="fas fa-users"></i> Клиенты</button>
+    <button onclick="showSection('consultations')"><i class="fas fa-comments"></i> Журнал</button>
+    <button onclick="showSection('diagnostics')"><i class="fas fa-clipboard-list"></i> Тесты</button>
+    <button onclick="showSection('results')"><i class="fas fa-chart-bar"></i> Результаты</button>
+</nav>
+
+<main>
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="section active">
+        <div class="menu-card">
+            <h2 style="margin-top:0; color: var(--text-dark);">Главное меню</h2>
+
+            <div class="stats-box">
+                <i class="fas fa-chart-pie"></i> <strong>Данных в приложении:</strong><br>
+                Клиентов: <span id="stat-clients">0</span> | Записей: <span id="stat-records">0</span>
+            </div>
+
+            <button class="big-btn btn-red" onclick="downloadFromYandex()">
+                <i class="fas fa-download"></i> СКАЧАТЬ БЭКАП
+            </button>
+            <button class="big-btn btn-green" onclick="uploadToYandex()">
+                <i class="fas fa-upload"></i> ВОССТАНОВИТЬ ИЗ БЭКАПА
+            </button>
+
+            <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+
+            <button class="big-btn btn-blue" onclick="showSection('diagnostics')">
+                <i class="fas fa-pencil-alt"></i> Провести тестирование
+            </button>
+            <button class="big-btn btn-green" onclick="showSection('clients')">
+                <i class="fas fa-user-plus"></i> Управление клиентами
+            </button>
+            <button class="big-btn btn-outline" onclick="showSection('results')">
+                <i class="fas fa-eye"></i> Просмотр результатов
+            </button>
+
+            <div style="margin-top: 30px; text-align: left;">
+                <h3><i class="fas fa-file-export"></i> Экспорт данных</h3>
+                <button class="big-btn btn-green" onclick="exportCSV()">
+                    <i class="fas fa-table"></i> Экспорт тестов (CSV)
+                </button>
+            </div>
+
+            <button class="big-btn btn-finish" onclick="finishShift()">
+                <i class="fas fa-power-off"></i> ЗАВЕРШИТЬ СМЕНУ И СИНХРОНИЗИРОВАТЬ
+            </button>
+            <div class="timer-display" id="timer-display">До автосохранения: 6ч 00м</div>
+        </div>
+    </div>
+
+    <!-- SETTINGS PANEL (Hidden by default) -->
+    <div id="settings-panel" class="settings-panel">
+        <h3><i class="fas fa-cog"></i> Настройки Яндекс.Диска</h3>
+        <div class="form-group">
+            <label>OAuth Token</label>
+            <input type="password" id="ya-token" placeholder="Вставьте токен доступа">
+        </div>
+        <div class="form-group">
+            <label>Путь к файлу бэкапа</label>
+            <input type="text" id="ya-path" value="/psych_backup.json">
+        </div>
+        <button class="big-btn btn-blue" onclick="saveSettingsAndClose()">Сохранить настройки</button>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="clients" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-users"></i> Управление клиентами</h2>
+
+        <div class="form-group">
+            <label>Добавить клиента (JSON импорт)</label>
+            <textarea id="importData" rows="3" placeholder='[{"fio":"Иванов И.И.", "dob":"1950-01-01", "group":"Группа 1"}]'></textarea>
+            <button class="big-btn btn-blue" style="margin-top:10px;" onclick="importClients()">Импортировать список</button>
+        </div>
+
+        <div class="form-group">
+            <input type="text" id="searchClient" placeholder="Поиск по ФИО..." onkeyup="renderClients()">
+        </div>
+
+        <div id="clientsList" class="list-container"></div>
+    </div>
+
+    <!-- CONSULTATIONS -->
+    <div id="consultations" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-comments"></i> Журнал консультаций</h2>
+
+        <div class="form-group">
+            <label>Клиент</label>
+            <select id="consClientSelect"></select>
+        </div>
+        <div class="form-group">
+            <label>Дата</label>
+            <input type="date" id="consDate">
+        </div>
+        <div class="form-group">
+            <label>Тип обращения</label>
+            <select id="consType">
+                <option value="primary">Первичная консультация</option>
+                <option value="repeat">Повторная консультация</option>
+                <option value="emergency">Экстренная помощь</option>
+                <option value="patronage">Патронаж</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Содержание беседы / Жалобы</label>
+            <textarea id="consContent" rows="5" placeholder="Опишите содержание консультации..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Рекомендации</label>
+            <textarea id="consRec" rows="3" placeholder="Рекомендации клиенту..."></textarea>
+        </div>
+        <button class="big-btn btn-green" onclick="saveConsultation()">
+            <i class="fas fa-save"></i> Сохранить запись
+        </button>
+
+        <h3 style="margin-top:30px; color: var(--text-light);">Последние записи</h3>
+        <div id="consHistory" class="list-container"></div>
+    </div>
+
+    <!-- DIAGNOSTICS -->
+    <div id="diagnostics" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-clipboard-list"></i> Проведение тестирования</h2>
+
+        <div class="form-group">
+            <label>Клиент</label>
+            <select id="diagClientSelect"></select>
+        </div>
+        <div class="form-group">
+            <label>Методика</label>
+            <select id="diagMethod">
+                <option value="MMSE">MMSE (Краткая шкала оценки психического статуса)</option>
+                <option value="HADS">HADS (Госпитальная шкала тревоги и депрессии)</option>
+                <option value="Zung">Шкала самооценки депрессии Цунга</option>
+                <option value="MoCA">MoCA (Монреальская шкала когнитивной оценки)</option>
+                <option value="Beck">Опросник депрессии Бека</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Результат (баллы/индекс)</label>
+            <input type="text" id="diagResult" placeholder="Например: 24 балла">
+        </div>
+        <div class="form-group">
+            <label>Интерпретация / Заключение</label>
+            <textarea id="diagInterp" rows="4" placeholder="Опишите результаты тестирования..."></textarea>
+        </div>
+        <button class="big-btn btn-blue" onclick="saveDiagnosis()">
+            <i class="fas fa-check-circle"></i> Сохранить результат
+        </button>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" class="section">
+        <h2 style="color: var(--text-dark);"><i class="fas fa-chart-bar"></i> Результаты тестов</h2>
+        <div class="form-group">
+            <label>Фильтр по клиенту</label>
+            <select id="filterClientSelect" onchange="renderResults()">
+                <option value="all">Все клиенты</option>
+            </select>
+        </div>
+        <div id="resultsList" class="list-container"></div>
+    </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+    // --- КОНФИГУРАЦИЯ ---
+    const DB_NAME = 'psychosuite_local';
+    const INACTIVITY_LIMIT = 6 * 60 * 60 * 1000; // 6 часов
+
+    let db = new PouchDB(DB_NAME);
+    let inactivityTimer;
+    let lastActivityTime = Date.now();
+
+    // Индексы
+    db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
+    db.createIndex({ index: { fields: ['fio'] } });
+
+    // --- ТАЙМЕР И АВТОСОХРАНЕНИЕ ---
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        lastActivityTime = Date.now();
+        updateTimerDisplay();
+        inactivityTimer = setTimeout(() => {
+            showToast("⏰ 6 часов бездействия. Автосохранение...", "info");
+            uploadToYandex(true);
+        }, INACTIVITY_LIMIT);
+    }
+
+    function updateTimerDisplay() {
+        const now = Date.now();
+        const diff = INACTIVITY_LIMIT - (now - lastActivityTime);
+        if (diff <= 0) return;
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        document.getElementById('timer-display').innerText = `До автосохранения: ${h}ч ${m}м`;
+    }
+
+    setInterval(updateTimerDisplay, 60000);
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, resetInactivityTimer, true);
+    });
+
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    window.addEventListener('load', async () => {
+        const savedToken = localStorage.getItem('ya_token');
+        const savedPath = localStorage.getItem('ya_path');
+        if(savedToken) document.getElementById('ya-token').value = savedToken;
+        if(savedPath) document.getElementById('ya-path').value = savedPath;
+
+        if(savedToken) {
+            updateStatus("Токен найден. Автозагрузка...", "info");
+            await downloadFromYandex();
+        } else {
+            updateStatus("Настройте токен в разделе настроек (шестеренка)", "warning");
+        }
+
+        resetInactivityTimer();
+        await updateStats();
+        await renderClients();
+        await loadClientsToSelects();
+    });
+
+    function saveSettingsAndClose() {
+        localStorage.setItem('ya_token', document.getElementById('ya-token').value);
+        localStorage.setItem('ya-path', document.getElementById('ya-path').value);
+        toggleSettings();
+        showToast("Настройки сохранены", "success");
+        // Автозагрузка после сохранения токена
+        if(document.getElementById('ya-token').value) {
+            downloadFromYandex();
+        }
+    }
+
+    function toggleSettings() {
+        const panel = document.getElementById('settings-panel');
+        panel.classList.toggle('open');
+    }
+
+    // --- НАВИГАЦИЯ ---
+    window.showSection = (id) => {
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+
+        // Find button that calls this function and make it active
+        const buttons = document.querySelectorAll('nav button');
+        buttons.forEach(btn => {
+            if(btn.getAttribute('onclick').includes(id)) {
+                btn.classList.add('active');
+            }
+        });
+
+        resetInactivityTimer();
+
+        if(id === 'clients') renderClients();
+        if(id === 'consultations' || id === 'diagnostics') loadClientsToSelects();
+        if(id === 'results') { loadClientsToSelects(); renderResults(); }
+        if(id === 'dashboard') updateStats();
+    };
+
+    function updateStatus(msg, type="info") {
+        const bar = document.getElementById('sync-status-bar');
+        const icon = type === 'error' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-info-circle');
+        const color = type === 'error' ? '#721c24' : (type === 'success' ? '#155724' : '#856404');
+        const bg = type === 'error' ? '#f8d7da' : (type === 'success' ? '#d4edda' : '#fff3cd');
+
+        bar.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+        bar.style.color = color;
+        bar.style.background = bg;
+        bar.style.borderColor = type === 'error' ? '#f5c6cb' : (type === 'success' ? '#c3e6cb' : '#ffeeba');
+    }
+
+    function showToast(msg, type="info") {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.className = type + ' show';
+        setTimeout(() => { toast.classList.remove('show'); }, 4000);
+    }
+
+    // --- ЯНДЕКС ДИСК ---
+    async function getYandexHeaders() {
+        const token = document.getElementById('ya-token').value;
+        const path = document.getElementById('ya-path').value;
+        if (!token) throw new Error("Нет токена!");
+        return { token, path };
+    }
+
+    async function getFileId(path, token) {
+        const url = `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(path)}`;
+        const resp = await fetch(url, { headers: { Authorization: `OAuth ${token}` } });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return data.id;
+    }
+
+    async function downloadFromYandex() {
+        updateStatus("Скачивание базы с Яндекс.Диска...", "info");
+        try {
+            const { token, path } = await getYandexHeaders();
+            let fileId = await getFileId(path, token);
+
+            if (!fileId) {
+                updateStatus("Файл бэкапа не найден на Диске", "warning");
+                showToast("База на диске пуста", "info");
+                return;
+            }
+
+            const dlUrlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(path)}`, {
+                headers: { Authorization: `OAuth ${token}` }
+            });
+            const dlData = await dlUrlResp.json();
+
+            const fileResp = await fetch(dlData.href);
+            const jsonData = await fileResp.json();
+
+            await db.destroy();
+            db = new PouchDB(DB_NAME);
+            await db.createIndex({ index: { fields: ['type', 'clientId', 'date'] } });
+            await db.createIndex({ index: { fields: ['fio'] } });
+
+            if (jsonData.length > 0) {
+                await db.bulkDocs(jsonData);
+                updateStatus(`✅ Загружено ${jsonData.length} записей`, "success");
+                showToast("База успешно обновлена!", "success");
+            }
+
+            await updateStats();
+            await renderClients();
+            await loadClientsToSelects();
+
+        } catch (e) {
+            updateStatus(`Ошибка: ${e.message}`, "error");
+            showToast("Ошибка загрузки: " + e.message, "error");
+        }
+    }
+
+    async function uploadToYandex(silent = false) {
+        if(!silent) updateStatus("Загрузка базы на Яндекс.Диск...", "info");
+        try {
+            const { token, path } = await getYandexHeaders();
+
+            const allDocs = await db.allDocs({ include_docs: true });
+            const exportData = allDocs.rows.map(r => r.doc);
+            const blob = new Blob([JSON.stringify(exportData)], {type: "application/json"});
+
+            let fileId = await getFileId(path, token);
+            let uploadUrl;
+
+            if (fileId) {
+                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}&overwrite=true`, {
+                    headers: { Authorization: `OAuth ${token}` }
+                });
+                const data = await resp.json();
+                uploadUrl = data.upload_url;
+            } else {
+                const resp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${encodeURIComponent(path)}`, {
+                    headers: { Authorization: `OAuth ${token}` }
+                });
+                const data = await resp.json();
+                uploadUrl = data.upload_url;
+            }
+
+            const uploadResp = await fetch(uploadUrl, { method: 'PUT', body: blob });
+
+            if (uploadResp.ok) {
+                updateStatus("✅ Успешно сохранено на Яндекс.Диск", "success");
+                if(!silent) showToast("Данные синхронизированы", "success");
+            } else {
+                throw new Error(`Ошибка: ${uploadResp.statusText}`);
+            }
+
+        } catch (e) {
+            const msg = `Ошибка: ${e.message}`;
+            updateStatus(msg, "error");
+            if(!silent) showToast(msg, "error");
+        }
+    }
+
+    async function finishShift() {
+        if(!confirm("Завершить смену и синхронизировать данные с Яндекс.Диском?")) return;
+        await uploadToYandex(false);
+        alert("Смена завершена. Данные сохранены.");
+    }
+
+    // --- ФУНКЦИИ ПРИЛОЖЕНИЯ ---
+    async function updateStats() {
+        const clients = await db.allDocs({ startkey: 'client_', endkey: 'client_\uffff' });
+        const records = await db.allDocs({ startkey: 'cons_', endkey: 'cons_\uffff' });
+        const diags = await db.allDocs({ startkey: 'diag_', endkey: 'diag_\uffff' });
+
+        document.getElementById('stat-clients').innerText = clients.rows.length;
+        document.getElementById('stat-records').innerText = records.rows.length + diags.rows.length;
+    }
+
+    async function importClients() {
+        const raw = document.getElementById('importData').value;
+        if(!raw) return;
+        try {
+            const clients = JSON.parse(raw);
+            const docs = clients.map(c => ({
+                _id: 'client_' + Date.now() + '_' + Math.random(),
+                type: 'client', fio: c.fio, dob: c.dob, group: c.group || ''
+            }));
+            await db.bulkDocs(docs);
+            showToast(`Импортировано ${docs.length} клиентов`, "success");
+            document.getElementById('importData').value = '';
+            await renderClients();
+            await loadClientsToSelects();
+            await updateStats();
+        } catch(e) { showToast('Ошибка формата JSON', "error"); }
+    }
+
+    async function renderClients() {
+        const search = document.getElementById('searchClient').value.toLowerCase();
+        const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
+        const list = document.getElementById('clientsList');
+        list.innerHTML = '';
+
+        let count = 0;
+        res.rows.forEach(r => {
+            const c = r.doc;
+            if(c.fio.toLowerCase().includes(search)) {
+                count++;
+                const card = document.createElement('div');
+                card.className = 'client-card';
+                card.innerHTML = `
+                    <div class="client-name">${c.fio}</div>
+                    <div class="client-dob">ДР: ${c.dob} ${c.group ? '| ' + c.group : ''}</div>
+                    <div class="client-actions">
+                        <button class="icon-btn edit" title="Редактировать"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn" title="Удалить" onclick="deleteClient('${c._id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(card);
+            }
+        });
+        if(count === 0) list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Клиенты не найдены</div>';
+    }
+
+    async function deleteClient(id) {
+        if(!confirm('Вы уверены? Это удалит клиента и все его записи.')) return;
+        // Удаляем клиента и все связанные записи
+        const allDocs = await db.allDocs({ include_docs: true });
+        const toDelete = allDocs.rows.filter(r => r.doc.clientId === id || r.doc._id === id).map(r => r.doc);
+        await db.bulkDocs(toDelete.map(d => ({...d, _deleted: true})));
+        showToast("Клиент удален", "success");
+        await renderClients();
+        await updateStats();
+    }
+
+    async function loadClientsToSelects() {
+        const res = await db.allDocs({ include_docs: true, startkey: 'client_', endkey: 'client_\uffff' });
+        const opts = '<option value="">-- Выберите клиента --</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
+
+        document.getElementById('consClientSelect').innerHTML = opts;
+        document.getElementById('diagClientSelect').innerHTML = opts;
+
+        const filterOpts = '<option value="all">Все клиенты</option>' + res.rows.map(r => `<option value="${r.doc._id}">${r.doc.fio}</option>`).join('');
+        document.getElementById('filterClientSelect').innerHTML = filterOpts;
+    }
+
+    async function saveConsultation() {
+        const cid = document.getElementById('consClientSelect').value;
+        if(!cid) return showToast('Выберите клиента', "error");
+
+        await db.put({
+            _id: 'cons_' + Date.now(),
+            type: 'consultation',
+            clientId: cid,
+            date: document.getElementById('consDate').value,
+            consType: document.getElementById('consType').value,
+            content: document.getElementById('consContent').value,
+            rec: document.getElementById('consRec').value,
+            timestamp: new Date().toISOString()
+        });
+
+        showToast("Запись сохранена", "success");
+        document.getElementById('consContent').value = '';
+        document.getElementById('consRec').value = '';
+        resetInactivityTimer();
+
+        // Показать последние записи
+        const history = document.getElementById('consHistory');
+        const allCons = await db.allDocs({include_docs:true, startkey:'cons_', endkey:'cons_\uffff', descending:true, limit:3});
+        history.innerHTML = allCons.rows.map(r => `
+            <div class="client-card" style="padding:15px;">
+                <div style="font-weight:bold; color:var(--primary-blue);">${r.doc.date} (${r.doc.consType})</div>
+                <div style="margin-top:5px;">${r.doc.content.substring(0, 100)}...</div>
+            </div>
+        `).join('');
+    }
+
+    async function saveDiagnosis() {
+        const cid = document.getElementById('diagClientSelect').value;
+        if(!cid) return showToast('Выберите клиента', "error");
+
+        await db.put({
+            _id: 'diag_' + Date.now(),
+            type: 'diagnosis',
+            clientId: cid,
+            method: document.getElementById('diagMethod').value,
+            result: document.getElementById('diagResult').value,
+            interp: document.getElementById('diagInterp').value,
+            timestamp: new Date().toISOString()
+        });
+
+        showToast("Результат сохранен", "success");
+        document.getElementById('diagResult').value = '';
+        document.getElementById('diagInterp').value = '';
+        resetInactivityTimer();
+    }
+
+    async function renderResults() {
+        const filterId = document.getElementById('filterClientSelect').value;
+        const allDiags = await db.allDocs({include_docs:true, startkey:'diag_', endkey:'diag_\uffff', descending:true});
+
+        const list = document.getElementById('resultsList');
+        list.innerHTML = '';
+
+        let filtered = allDiags.rows;
+        if(filterId !== 'all') {
+            filtered = filtered.filter(r => r.doc.clientId === filterId);
+        }
+
+        if(filtered.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">Результатов нет</div>';
+            return;
+        }
+
+        filtered.forEach(r => {
+            const d = r.doc;
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+                <div class="result-method">${d.method}</div>
+                <span class="result-date">${new Date(d.timestamp).toLocaleString('ru-RU')}</span>
+                <div class="result-score">${d.result}</div>
+                <div class="result-desc">${d.interp}</div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    async function exportCSV() {
+        const allDiags = await db.allDocs({include_docs:true, startkey:'diag_', endkey:'diag_\uffff'});
+        const allClients = await db.allDocs({include_docs:true, startkey:'client_', endkey:'client_\uffff'});
+        const clientsMap = {};
+        allClients.rows.forEach(r => clientsMap[r.doc._id] = r.doc.fio);
+
+        let csv = "Дата,Клиент,Методика,Результат,Интерпретация\n";
+        allDiags.rows.forEach(r => {
+            const d = r.doc;
+            const fio = clientsMap[d.clientId] || "Неизвестно";
+            csv += `"${new Date(d.timestamp).toLocaleDateString('ru-RU')}","${fio}","${d.method}","${d.result}","${d.interp.replace(/"/g, '""')}"\n`;
+        });
+
+        const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+        saveAs(blob, `psych_tests_export_${new Date().toISOString().slice(0,10)}.csv`);
+        showToast("CSV файл скачан", "success");
+    }
+
+    // Предупреждение при закрытии
+    window.addEventListener('beforeunload', (e) => {
+        if(localStorage.getItem('ya_token')) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+</script>
+</body>
+</html>
